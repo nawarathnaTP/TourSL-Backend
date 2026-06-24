@@ -106,12 +106,12 @@ class AuthServiceTest {
 
 		Account account = Account.builder()
 				.user(testUser)
-				.provider(AuthProvider.LOCAL)
+				.authProvider(AuthProvider.LOCAL)
 				.password("encoded-password")
 				.build();
 
 		when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-		when(accountRepository.findByUser__AndProvider(testUser, AuthProvider.LOCAL))
+		when(accountRepository.findByUserAndAuthProvider(testUser, AuthProvider.LOCAL))
 				.thenReturn(Optional.of(account));
 		when(passwordEncoder.matches("password123", "encoded-password")).thenReturn(true);
 		when(jwtUtil.generateAccessToken("john@example.com")).thenReturn("access-token");
@@ -143,7 +143,7 @@ class AuthServiceTest {
 		request.setPassword("password123");
 
 		when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-		when(accountRepository.findByUser__AndProvider(testUser, AuthProvider.LOCAL))
+		when(accountRepository.findByUserAndAuthProvider(testUser, AuthProvider.LOCAL))
 				.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> authService.login(request))
@@ -159,12 +159,12 @@ class AuthServiceTest {
 
 		Account account = Account.builder()
 				.user(testUser)
-				.provider(AuthProvider.LOCAL)
+				.authProvider(AuthProvider.LOCAL)
 				.password("encoded-password")
 				.build();
 
 		when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-		when(accountRepository.findByUser__AndProvider(testUser, AuthProvider.LOCAL))
+		when(accountRepository.findByUserAndAuthProvider(testUser, AuthProvider.LOCAL))
 				.thenReturn(Optional.of(account));
 		when(passwordEncoder.matches("wrong-password", "encoded-password")).thenReturn(false);
 

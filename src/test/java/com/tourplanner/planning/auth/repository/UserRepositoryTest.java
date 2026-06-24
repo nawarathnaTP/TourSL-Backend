@@ -57,7 +57,7 @@ class UserRepositoryTest {
 	@Test
 	void save_setsCreatedAtAndUpdatedAt() {
 		assertThat(savedUser.getId()).isNotNull();
-		assertThat(savedUser.getCreated_at()).isNotNull();
-		assertThat(savedUser.getUpdated_at()).isNotNull();
+		assertThat(savedUser.getCreatedAt()).isNotNull();
+		assertThat(savedUser.getUpdatedAt()).isNotNull();
 	}
 }
