@@ -12,7 +12,7 @@ class JwtUtilTest {
 	@BeforeEach
 	void setUp() {
 		jwtUtil = new JwtUtil(
-				"${JWT_SECRET}",
+				"test-secret-key-that-is-at-least-256-bits-long-for-hmac-sha",
 				86400000L,
 				604800000L
 		);
@@ -70,7 +70,7 @@ class JwtUtilTest {
 	@Test
 	void isTokenValid_expiredToken_returnsFalse() {
 		JwtUtil shortLivedJwtUtil = new JwtUtil(
-				"${JWT_SECRET}",
+				"test-secret-key-that-is-at-least-256-bits-long-for-hmac-sha",
 				-1000L,
 				-1000L
 		);
