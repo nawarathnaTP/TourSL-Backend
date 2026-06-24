@@ -1,6 +1,6 @@
 package com.tourplanner.planning.tour.entity;
 
-import com.tourplanner.planning.tourist.entity.Tourist;
+import com.tourplanner.planning.auth.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +28,7 @@ public class Tour {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private Tourist tourist;
+    private User user;
 
     @Column(name = "start_day", nullable = false)
     private LocalDate startDay;
