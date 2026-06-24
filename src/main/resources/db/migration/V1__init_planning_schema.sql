@@ -6,7 +6,7 @@ CREATE TABLE tourist (
     last_name   VARCHAR(255) NOT NULL,
     picture_url VARCHAR(512),
     created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
 -- 2. accounts
