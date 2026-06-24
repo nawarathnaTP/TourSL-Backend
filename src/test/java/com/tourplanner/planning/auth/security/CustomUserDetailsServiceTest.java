@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,7 +29,7 @@ class CustomUserDetailsServiceTest {
 	@Test
 	void loadUserByUsername_existingUser_returnsUserDetails() {
 		User user = User.builder()
-				.id(1L)
+				.id(UUID.randomUUID())
 				.firstName("John")
 				.lastName("Doe")
 				.email("john@example.com")

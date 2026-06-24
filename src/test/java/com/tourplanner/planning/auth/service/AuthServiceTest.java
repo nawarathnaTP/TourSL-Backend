@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,7 +50,7 @@ class AuthServiceTest {
 	@BeforeEach
 	void setUp() {
 		testUser = User.builder()
-				.id(1L)
+				.id(UUID.randomUUID())
 				.firstName("John")
 				.lastName("Doe")
 				.email("john@example.com")
