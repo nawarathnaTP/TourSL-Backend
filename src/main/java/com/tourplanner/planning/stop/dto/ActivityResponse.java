@@ -1,0 +1,21 @@
+package com.tourplanner.planning.stop.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.UUID;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ActivityResponse {
+
+    private UUID activityId;
+    private UUID stopId;
+    private Integer duration;
+    private String description;
+    private UUID bookingId;
+}
