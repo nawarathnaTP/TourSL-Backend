@@ -1,4 +1,4 @@
-package com.tourplanner.planning.dto;
+package com.tourplanner.planning.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

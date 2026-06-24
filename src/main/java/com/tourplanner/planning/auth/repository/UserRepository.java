@@ -1,6 +1,6 @@
-package com.tourplanner.planning.repository;
+package com.tourplanner.planning.auth.repository;
 
-import com.tourplanner.planning.entity.User;
+import com.tourplanner.planning.auth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

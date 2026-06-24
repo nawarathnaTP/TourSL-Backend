@@ -1,6 +1,6 @@
-package com.tourplanner.planning.repository;
+package com.tourplanner.planning.auth.repository;
 
-import com.tourplanner.planning.entity.User;
+import com.tourplanner.planning.auth.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +57,7 @@ class UserRepositoryTest {
 	@Test
 	void save_setsCreatedAtAndUpdatedAt() {
 		assertThat(savedUser.getId()).isNotNull();
-		assertThat(savedUser.getCreatedAt()).isNotNull();
-		assertThat(savedUser.getUpdatedAt()).isNotNull();
+		assertThat(savedUser.getCreated_at()).isNotNull();
+		assertThat(savedUser.getUpdated_at()).isNotNull();
 	}
 }

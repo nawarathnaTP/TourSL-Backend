@@ -1,15 +1,15 @@
-package com.tourplanner.planning.service;
+package com.tourplanner.planning.auth.service;
 
-import com.tourplanner.planning.dto.AuthResponse;
-import com.tourplanner.planning.dto.LoginRequest;
-import com.tourplanner.planning.dto.RefreshTokenRequest;
-import com.tourplanner.planning.dto.RegisterRequest;
-import com.tourplanner.planning.entity.Account;
-import com.tourplanner.planning.entity.AuthProvider;
-import com.tourplanner.planning.entity.User;
-import com.tourplanner.planning.repository.AccountRepository;
-import com.tourplanner.planning.repository.UserRepository;
-import com.tourplanner.planning.security.JwtUtil;
+import com.tourplanner.planning.auth.dto.AuthResponse;
+import com.tourplanner.planning.auth.dto.LoginRequest;
+import com.tourplanner.planning.auth.dto.RefreshTokenRequest;
+import com.tourplanner.planning.auth.dto.RegisterRequest;
+import com.tourplanner.planning.auth.entity.Account;
+import com.tourplanner.planning.auth.entity.AuthProvider;
+import com.tourplanner.planning.auth.entity.User;
+import com.tourplanner.planning.auth.repository.AccountRepository;
+import com.tourplanner.planning.auth.repository.UserRepository;
+import com.tourplanner.planning.auth.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,12 +106,12 @@ class AuthServiceTest {
 
 		Account account = Account.builder()
 				.user(testUser)
-				.authProvider(AuthProvider.LOCAL)
+				.provider(AuthProvider.LOCAL)
 				.password("encoded-password")
 				.build();
 
 		when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-		when(accountRepository.findByUserAndAuthProvider(testUser, AuthProvider.LOCAL))
+		when(accountRepository.findByUser__AndProvider(testUser, AuthProvider.LOCAL))
 				.thenReturn(Optional.of(account));
 		when(passwordEncoder.matches("password123", "encoded-password")).thenReturn(true);
 		when(jwtUtil.generateAccessToken("john@example.com")).thenReturn("access-token");
@@ -143,7 +143,7 @@ class AuthServiceTest {
 		request.setPassword("password123");
 
 		when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-		when(accountRepository.findByUserAndAuthProvider(testUser, AuthProvider.LOCAL))
+		when(accountRepository.findByUser__AndProvider(testUser, AuthProvider.LOCAL))
 				.thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> authService.login(request))
@@ -159,12 +159,12 @@ class AuthServiceTest {
 
 		Account account = Account.builder()
 				.user(testUser)
-				.authProvider(AuthProvider.LOCAL)
+				.provider(AuthProvider.LOCAL)
 				.password("encoded-password")
 				.build();
 
 		when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-		when(accountRepository.findByUserAndAuthProvider(testUser, AuthProvider.LOCAL))
+		when(accountRepository.findByUser__AndProvider(testUser, AuthProvider.LOCAL))
 				.thenReturn(Optional.of(account));
 		when(passwordEncoder.matches("wrong-password", "encoded-password")).thenReturn(false);
 

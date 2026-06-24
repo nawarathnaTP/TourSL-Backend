@@ -1,16 +1,16 @@
-package com.tourplanner.planning.service;
+package com.tourplanner.planning.auth.service;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.tourplanner.planning.dto.*;
-import com.tourplanner.planning.entity.Account;
-import com.tourplanner.planning.entity.AuthProvider;
-import com.tourplanner.planning.entity.User;
-import com.tourplanner.planning.repository.AccountRepository;
-import com.tourplanner.planning.repository.UserRepository;
-import com.tourplanner.planning.security.JwtUtil;
+import com.tourplanner.planning.auth.dto.*;
+import com.tourplanner.planning.auth.entity.Account;
+import com.tourplanner.planning.auth.entity.AuthProvider;
+import com.tourplanner.planning.auth.entity.User;
+import com.tourplanner.planning.auth.repository.AccountRepository;
+import com.tourplanner.planning.auth.repository.UserRepository;
+import com.tourplanner.planning.auth.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,7 +48,7 @@ public class AuthService {
 
 		Account account = Account.builder()
 				.user(user)
-				.authProvider(AuthProvider.LOCAL)
+				.provider(AuthProvider.LOCAL)
 				.password(passwordEncoder.encode(request.getPassword()))
 				.build();
 		accountRepository.save(account);
@@ -60,7 +60,7 @@ public class AuthService {
 		User user = userRepository.findByEmail(request.getEmail())
 				.orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
-		Account account = accountRepository.findByUserAndAuthProvider(user, AuthProvider.LOCAL)
+		Account account = accountRepository.findByUser__AndProvider(user, AuthProvider.LOCAL)
 				.orElseThrow(() -> new IllegalArgumentException("No local account found. Try signing in with Google."));
 
 		if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
@@ -81,7 +81,7 @@ public class AuthService {
 		String pictureUrl = (String) payload.get("picture");
 
 		// Check if a Google account already exists with this googleId
-		var existingAccount = accountRepository.findByGoogleId(googleId);
+		var existingAccount = accountRepository.findByProvider_user_id(googleId);
 		if (existingAccount.isPresent()) {
 			return buildAuthResponse(existingAccount.get().getUser());
 		}
@@ -101,8 +101,8 @@ public class AuthService {
 
 		Account account = Account.builder()
 				.user(user)
-				.authProvider(AuthProvider.GOOGLE)
-				.googleId(googleId)
+				.provider(AuthProvider.GOOGLE)
+				.provider_user_id(googleId)
 				.build();
 		accountRepository.save(account);
 

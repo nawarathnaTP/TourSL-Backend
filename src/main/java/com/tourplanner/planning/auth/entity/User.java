@@ -1,4 +1,4 @@
-package com.tourplanner.planning.entity;
+package com.tourplanner.planning.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -20,12 +20,13 @@ public class User {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "user_id")
 	private Long id;
 
-	@Column(nullable = false)
+	@Column(nullable = false, name="first_name")
 	private String firstName;
 
-	@Column(nullable = false)
+	@Column(nullable = false, name="last_name")
 	private String lastName;
 
 	@Column(nullable = false, unique = true)
@@ -33,24 +34,25 @@ public class User {
 
 	private String phoneNumber;
 
+	@Column(name="picture_url")
 	private String profilePictureUrl;
 
 	@Column(nullable = false, updatable = false)
-	private LocalDateTime createdAt;
+	private LocalDateTime created_at;
 
-	private LocalDateTime updatedAt;
+	private LocalDateTime updated_at;
 
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Account> accounts = new ArrayList<>();
 
 	@PrePersist
 	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
+		created_at = LocalDateTime.now();
+		updated_at = LocalDateTime.now();
 	}
 
 	@PreUpdate
 	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
+		updated_at = LocalDateTime.now();
 	}
 }

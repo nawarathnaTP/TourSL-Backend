@@ -1,13 +1,13 @@
-package com.tourplanner.planning.controller;
+package com.tourplanner.planning.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tourplanner.planning.dto.AuthResponse;
-import com.tourplanner.planning.dto.LoginRequest;
-import com.tourplanner.planning.dto.RefreshTokenRequest;
-import com.tourplanner.planning.dto.RegisterRequest;
-import com.tourplanner.planning.exception.GlobalExceptionHandler;
-import com.tourplanner.planning.security.JwtUtil;
-import com.tourplanner.planning.service.AuthService;
+import com.tourplanner.planning.auth.dto.AuthResponse;
+import com.tourplanner.planning.auth.dto.LoginRequest;
+import com.tourplanner.planning.auth.dto.RefreshTokenRequest;
+import com.tourplanner.planning.auth.dto.RegisterRequest;
+import com.tourplanner.planning.auth.exception.GlobalExceptionHandler;
+import com.tourplanner.planning.auth.security.JwtUtil;
+import com.tourplanner.planning.auth.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;

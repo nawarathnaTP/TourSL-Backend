@@ -1,4 +1,4 @@
-package com.tourplanner.planning.security;
+package com.tourplanner.planning.auth.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

@@ -1,7 +1,7 @@
-package com.tourplanner.planning.controller;
+package com.tourplanner.planning.auth.controller;
 
-import com.tourplanner.planning.dto.*;
-import com.tourplanner.planning.service.AuthService;
+import com.tourplanner.planning.auth.dto.*;
+import com.tourplanner.planning.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

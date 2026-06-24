@@ -1,4 +1,4 @@
-package com.tourplanner.planning.exception;
+package com.tourplanner.planning.auth.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

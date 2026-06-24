@@ -1,6 +1,6 @@
 package com.tourplanner.planning.config;
 
-import com.tourplanner.planning.security.JwtAuthenticationFilter;
+import com.tourplanner.planning.auth.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

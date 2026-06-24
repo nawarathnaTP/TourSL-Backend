@@ -1,4 +1,4 @@
-package com.tourplanner.planning.security;
+package com.tourplanner.planning.auth.security;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package com.tourplanner.planning.entity;
+package com.tourplanner.planning.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -18,7 +18,7 @@ public class Account {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	private Long acc_id;
 
 	@ManyToOne
 	@JoinColumn(name = "user_id", nullable = false)
@@ -26,25 +26,25 @@ public class Account {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	private AuthProvider authProvider;
+	private AuthProvider provider;
+
+	private String provider_user_id;
 
 	private String password;
 
-	private String googleId;
-
 	@Column(nullable = false, updatable = false)
-	private LocalDateTime createdAt;
+	private LocalDateTime created_at;
 
-	private LocalDateTime updatedAt;
+	private LocalDateTime updated_at;
 
 	@PrePersist
 	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
+		created_at = LocalDateTime.now();
+		updated_at = LocalDateTime.now();
 	}
 
 	@PreUpdate
 	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
+		updated_at = LocalDateTime.now();
 	}
 }

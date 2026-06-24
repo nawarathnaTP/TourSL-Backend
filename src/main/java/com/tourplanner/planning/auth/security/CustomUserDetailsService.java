@@ -1,6 +1,6 @@
-package com.tourplanner.planning.security;
+package com.tourplanner.planning.auth.security;
 
-import com.tourplanner.planning.repository.UserRepository;
+import com.tourplanner.planning.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

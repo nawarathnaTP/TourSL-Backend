@@ -1,7 +1,7 @@
-package com.tourplanner.planning.security;
+package com.tourplanner.planning.auth.security;
 
-import com.tourplanner.planning.entity.User;
-import com.tourplanner.planning.repository.UserRepository;
+import com.tourplanner.planning.auth.entity.User;
+import com.tourplanner.planning.auth.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

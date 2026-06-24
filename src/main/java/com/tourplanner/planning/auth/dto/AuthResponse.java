@@ -1,4 +1,4 @@
-package com.tourplanner.planning.dto;
+package com.tourplanner.planning.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

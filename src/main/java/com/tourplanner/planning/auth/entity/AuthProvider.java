@@ -1,4 +1,4 @@
-package com.tourplanner.planning.entity;
+package com.tourplanner.planning.auth.entity;
 
 public enum AuthProvider {
 	LOCAL,
