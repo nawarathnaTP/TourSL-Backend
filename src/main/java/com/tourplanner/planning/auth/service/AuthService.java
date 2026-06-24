@@ -48,7 +48,7 @@ public class AuthService {
 
 		Account account = Account.builder()
 				.user(user)
-				.provider(AuthProvider.LOCAL)
+				.authProvider(AuthProvider.LOCAL)
 				.password(passwordEncoder.encode(request.getPassword()))
 				.build();
 		accountRepository.save(account);
@@ -60,7 +60,7 @@ public class AuthService {
 		User user = userRepository.findByEmail(request.getEmail())
 				.orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
-		Account account = accountRepository.findByUser__AndProvider(user, AuthProvider.LOCAL)
+		Account account = accountRepository.findByUserAndAuthProvider(user, AuthProvider.LOCAL)
 				.orElseThrow(() -> new IllegalArgumentException("No local account found. Try signing in with Google."));
 
 		if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
@@ -74,14 +74,14 @@ public class AuthService {
 	public AuthResponse googleAuth(GoogleAuthRequest request) {
 		GoogleIdToken.Payload payload = verifyGoogleToken(request.getIdToken());
 
-		String googleId = payload.getSubject();
+		String providerId = payload.getSubject();
 		String email = payload.getEmail();
 		String firstName = (String) payload.get("given_name");
 		String lastName = (String) payload.get("family_name");
 		String pictureUrl = (String) payload.get("picture");
 
 		// Check if a Google account already exists with this googleId
-		var existingAccount = accountRepository.findByProvider_user_id(googleId);
+		var existingAccount = accountRepository.findByProviderId(providerId);
 		if (existingAccount.isPresent()) {
 			return buildAuthResponse(existingAccount.get().getUser());
 		}
@@ -101,8 +101,8 @@ public class AuthService {
 
 		Account account = Account.builder()
 				.user(user)
-				.provider(AuthProvider.GOOGLE)
-				.provider_user_id(googleId)
+				.authProvider(AuthProvider.GOOGLE)
+				.providerId(providerId)
 				.build();
 		accountRepository.save(account);
 

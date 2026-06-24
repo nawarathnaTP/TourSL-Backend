@@ -11,12 +11,9 @@ import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
 
-	@Query("SELECT a FROM Account a WHERE a.user = :user AND a.provider = :provider")
-	Optional<Account> findByUser__AndProvider(@Param("user") User user, @Param("provider") AuthProvider provider);
+	Optional<Account> findByUserAndAuthProvider(User user, AuthProvider AuthProvider);
 
-	@Query("SELECT a FROM Account a WHERE a.provider_user_id = :provider_user_id")
-	Optional<Account> findByProvider_user_id(@Param("provider_user_id") String provider_user_id);
+	Optional<Account> findByProviderId(String providerId);
 
-	@Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Account a WHERE a.user = :user AND a.provider = :provider")
-	boolean existsByUser__AndProvider(@Param("user") User user, @Param("provider") AuthProvider provider);
+	boolean existsByUserAndAuthProvider(User user, AuthProvider AuthProvider);
 }

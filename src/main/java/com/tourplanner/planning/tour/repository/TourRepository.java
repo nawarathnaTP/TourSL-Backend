@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface TourRepository extends JpaRepository<Tour, UUID> {
-    List<Tour> findByTourist_UserId(UUID userId);
+    List<Tour> findByUser_UserId(UUID userId);
 }

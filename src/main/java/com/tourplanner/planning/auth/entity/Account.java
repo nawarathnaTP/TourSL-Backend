@@ -17,34 +17,37 @@ import java.time.LocalDateTime;
 public class Account {
 
 	@Id
+	@Column(name="acc_id")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long acc_id;
+	private Long accId;
 
 	@ManyToOne
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private AuthProvider provider;
+	@Column(name="provider",nullable = false)
+	private AuthProvider authProvider;
 
-	private String provider_user_id;
+	@Column(name="provider_user_id")
+	private String providerId;
 
 	private String password;
 
-	@Column(nullable = false, updatable = false)
-	private LocalDateTime created_at;
+	@Column(name="created_at",nullable = false, updatable = false)
+	private LocalDateTime createdAt;
 
-	private LocalDateTime updated_at;
+	@Column(name="updated_at")
+	private LocalDateTime updatedAt;
 
 	@PrePersist
 	protected void onCreate() {
-		created_at = LocalDateTime.now();
-		updated_at = LocalDateTime.now();
+		createdAt = LocalDateTime.now();
+		updatedAt = LocalDateTime.now();
 	}
 
 	@PreUpdate
 	protected void onUpdate() {
-		updated_at = LocalDateTime.now();
+		updatedAt = LocalDateTime.now();
 	}
 }

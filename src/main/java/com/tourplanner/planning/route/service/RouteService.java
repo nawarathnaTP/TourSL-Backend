@@ -17,7 +17,5 @@ public interface RouteService {
 
     void deleteRoute(UUID routeId);
 
-    List<RouteOptionResponse> getRouteOptionsByRouteId(UUID routeId);
-
     RouteOptionResponse selectRouteOption(UUID optionId);
 }
