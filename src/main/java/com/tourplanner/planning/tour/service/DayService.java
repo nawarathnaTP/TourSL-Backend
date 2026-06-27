@@ -13,4 +13,6 @@ public interface DayService {
     List<DayResponse> getDaysByTourId(UUID tourId);
 
     DayResponse updateDay(UUID dayId, DayRequest request);
+
+    DayResponse clearDay(UUID dayID);
 }

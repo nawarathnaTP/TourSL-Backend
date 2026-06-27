@@ -12,7 +12,7 @@ public interface TourService {
 
     TourResponse getTourById(UUID tourId);
 
-    List<TourResponse> getToursByUserId(Long userId);
+    List<TourResponse> getToursByUserId(UUID userId);
 
     TourResponse updateTour(UUID tourId, TourRequest request);
 

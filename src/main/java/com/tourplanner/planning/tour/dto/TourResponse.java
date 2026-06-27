@@ -17,7 +17,7 @@ import java.util.UUID;
 public class TourResponse {
 
     private UUID tourId;
-    private Long userId;
+    private UUID userId;
     private LocalDate startDay;
     private LocalDate endDay;
     private OffsetDateTime createdAt;

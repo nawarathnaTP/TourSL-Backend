@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class TourRequest {
 
-    private Long userId;
+    private UUID userId;
     private LocalDate startDay;
     private LocalDate endDay;
 }
