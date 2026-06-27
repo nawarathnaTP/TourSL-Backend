@@ -9,6 +9,7 @@ import com.tourplanner.planning.tour.entity.Day;
 import com.tourplanner.planning.tour.entity.Tour;
 import com.tourplanner.planning.tour.repository.TourRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +30,7 @@ public class TourServiceImpl implements TourService {
     @Override
     @Transactional
     public TourResponse createTour(TourRequest request) {
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
+        User user = getAuthenticatedUser();
 
         Tour tour = Tour.builder()
                 .user(user)
@@ -67,7 +67,8 @@ public class TourServiceImpl implements TourService {
     @Override
     @Transactional(readOnly = true)
     public List<TourResponse> getToursByUserId(UUID userId) {
-        return tourRepository.findByUser_Id(userId).stream()
+        User authenticatedUser = getAuthenticatedUser();
+        return tourRepository.findByUser_Id(authenticatedUser.getId()).stream()
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -126,6 +127,12 @@ public class TourServiceImpl implements TourService {
                 .updatedAt(tour.getUpdatedAt())
                 .days(dayResponses)
                 .build();
+    }
+
+    private User getAuthenticatedUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
     private DayResponse mapDayToResponse(Day day) {
