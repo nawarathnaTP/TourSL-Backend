@@ -1,6 +1,5 @@
 package com.tourplanner.planning.route.service;
 
-import com.tourplanner.planning.route.dto.RouteOptionResponse;
 import com.tourplanner.planning.route.dto.RouteRequest;
 import com.tourplanner.planning.route.dto.RouteResponse;
 
@@ -13,9 +12,11 @@ public interface RouteService {
 
     RouteResponse getRouteById(UUID routeId);
 
-    List<RouteResponse> getRoutesByStopId(UUID stopId);
+    List<RouteResponse> getRoutesByDayId(UUID dayId);
+
+    RouteResponse updateRoute(UUID routeId, RouteRequest request);
 
     void deleteRoute(UUID routeId);
 
-    RouteOptionResponse selectRouteOption(UUID optionId);
+    void deleteRoutesForDay(UUID dayId);
 }

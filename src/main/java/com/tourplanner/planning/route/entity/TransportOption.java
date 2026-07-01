@@ -29,7 +29,7 @@ public class TransportOption {
     @Column(nullable = false)
     private String label;
 
-    @OneToMany(mappedBy = "transportOption", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "transportOption")
     @Builder.Default
-    private List<RouteOption> routeOptions = new ArrayList<>();
+    private List<Route> routes = new ArrayList<>();
 }

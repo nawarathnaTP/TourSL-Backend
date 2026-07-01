@@ -4,8 +4,11 @@ import com.tourplanner.planning.route.entity.TransportOption;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface TransportOptionRepository extends JpaRepository<TransportOption, UUID> {
+
+    Optional<TransportOption> findByType(String type);
 }
