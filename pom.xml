@@ -180,6 +180,24 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.15.0</version>
+				<configuration>
+					<targetClasses>
+						<param>com.yourcompany.yourapp.service.*</param>
+						<param>com.yourcompany.yourapp.controller.*</param>
+					</targetClasses>
+					<targetTests>
+						<param>com.yourcompany.yourapp.*Test</param>
+					</targetTests>
+					<mutationThreshold>70</mutationThreshold>
+					<outputFormats>
+						<outputFormat>HTML</outputFormat>
+					</outputFormats>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

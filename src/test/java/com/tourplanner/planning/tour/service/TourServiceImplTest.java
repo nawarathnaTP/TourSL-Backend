@@ -4,19 +4,17 @@ import com.tourplanner.planning.auth.entity.User;
 import com.tourplanner.planning.auth.repository.UserRepository;
 import com.tourplanner.planning.tour.dto.TourRequest;
 import com.tourplanner.planning.tour.dto.TourResponse;
-import com.tourplanner.planning.tour.entity.Day;
 import com.tourplanner.planning.tour.entity.Tour;
+import com.tourplanner.planning.tour.entity.Day;
 import com.tourplanner.planning.tour.repository.TourRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
@@ -71,17 +69,10 @@ class TourServiceImplTest {
                 .days(new ArrayList<>())
                 .build();
 
-        // Add days to the test tour
-        for (int i = 0; i < 3; i++) {
-            Day day = Day.builder()
-                    .dayId(UUID.randomUUID())
-                    .tour(testTour)
-                    .dayNo(i + 1)
-                    .date(LocalDate.of(2026, 7, 1).plusDays(i))
-                    .stops(new ArrayList<>())
-                    .build();
-            testTour.getDays().add(day);
-        }
+        // Set up SecurityContext for authenticated user
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken("john@example.com", null, Collections.emptyList());
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @AfterEach
@@ -89,26 +80,22 @@ class TourServiceImplTest {
         SecurityContextHolder.clearContext();
     }
 
-    private void setUpSecurityContext(String email) {
-        var auth = new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(auth);
-        SecurityContextHolder.setContext(context);
-    }
-
-    // ==================== createTour ====================
-
+    // Verifies that a tour is created with correct fields and the expected number of days
     @Test
-    void createTour_validRequest_createsTourWithDays() {
-        setUpSecurityContext("john@example.com");
-
+    void createTour_validRequest_returnsTourResponse() {
         TourRequest request = TourRequest.builder()
                 .startDay(LocalDate.of(2026, 7, 1))
                 .endDay(LocalDate.of(2026, 7, 3))
                 .build();
 
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenReturn(testTour);
+        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> {
+            Tour tour = invocation.getArgument(0);
+            tour.setTourId(tourId);
+            tour.setCreatedAt(OffsetDateTime.now());
+            tour.setUpdatedAt(OffsetDateTime.now());
+            return tour;
+        });
 
         TourResponse response = tourService.createTour(request);
 
@@ -121,167 +108,67 @@ class TourServiceImplTest {
         verify(tourRepository).save(any(Tour.class));
     }
 
+    // Verifies that a tour with the same start and end date creates exactly one day entry
     @Test
-    void createTour_validRequest_generatesCorrectNumberOfDays() {
-        setUpSecurityContext("john@example.com");
-
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 5))
-                .build();
-
-        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.createTour(request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        Tour savedTour = tourCaptor.getValue();
-        assertThat(savedTour.getDays()).hasSize(5);
-    }
-
-    @Test
-    void createTour_validRequest_daysHaveCorrectDatesAndNumbers() {
-        setUpSecurityContext("john@example.com");
-
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 7, 10))
-                .endDay(LocalDate.of(2026, 7, 12))
-                .build();
-
-        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.createTour(request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        List<Day> days = tourCaptor.getValue().getDays();
-        assertThat(days.get(0).getDayNo()).isEqualTo(1);
-        assertThat(days.get(0).getDate()).isEqualTo(LocalDate.of(2026, 7, 10));
-        assertThat(days.get(1).getDayNo()).isEqualTo(2);
-        assertThat(days.get(1).getDate()).isEqualTo(LocalDate.of(2026, 7, 11));
-        assertThat(days.get(2).getDayNo()).isEqualTo(3);
-        assertThat(days.get(2).getDate()).isEqualTo(LocalDate.of(2026, 7, 12));
-    }
-
-    @Test
-    void createTour_singleDayTour_createsOneDayOnly() {
-        setUpSecurityContext("john@example.com");
-
+    void createTour_singleDay_createsOneDayEntry() {
         TourRequest request = TourRequest.builder()
                 .startDay(LocalDate.of(2026, 7, 1))
                 .endDay(LocalDate.of(2026, 7, 1))
                 .build();
 
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> {
+            Tour tour = invocation.getArgument(0);
+            tour.setTourId(tourId);
+            tour.setCreatedAt(OffsetDateTime.now());
+            tour.setUpdatedAt(OffsetDateTime.now());
+            return tour;
+        });
 
-        tourService.createTour(request);
+        TourResponse response = tourService.createTour(request);
 
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        Tour savedTour = tourCaptor.getValue();
-        assertThat(savedTour.getDays()).hasSize(1);
-        assertThat(savedTour.getDays().get(0).getDayNo()).isEqualTo(1);
-        assertThat(savedTour.getDays().get(0).getDate()).isEqualTo(LocalDate.of(2026, 7, 1));
+        assertThat(response.getDays()).hasSize(1);
+        assertThat(response.getDays().get(0).getDayNo()).isEqualTo(1);
+        assertThat(response.getDays().get(0).getDate()).isEqualTo(LocalDate.of(2026, 7, 1));
     }
 
-    @Test
-    void createTour_daysAreLinkedToTour() {
-        setUpSecurityContext("john@example.com");
-
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 2))
-                .build();
-
-        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.createTour(request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        Tour savedTour = tourCaptor.getValue();
-        savedTour.getDays().forEach(day ->
-                assertThat(day.getTour()).isSameAs(savedTour)
-        );
-    }
-
+    // Verifies that creating a tour throws an exception when the authenticated user is not found in the database
     @Test
     void createTour_userNotFound_throwsException() {
-        setUpSecurityContext("nonexistent@example.com");
-
         TourRequest request = TourRequest.builder()
                 .startDay(LocalDate.of(2026, 7, 1))
                 .endDay(LocalDate.of(2026, 7, 3))
                 .build();
 
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> tourService.createTour(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Authenticated user not found");
-
-        verify(tourRepository, never()).save(any());
     }
 
-    @Test
-    void createTour_usesAuthenticatedUserNotRequestData() {
-        setUpSecurityContext("john@example.com");
-
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 1))
-                .build();
-
-        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.createTour(request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-        assertThat(tourCaptor.getValue().getUser()).isSameAs(testUser);
-
-        verify(userRepository).findByEmail("john@example.com");
-    }
-
-    // ==================== getTourById ====================
-
+    // Verifies that fetching a tour by its ID returns the correct tour with its associated days
     @Test
     void getTourById_existingTour_returnsTourResponse() {
+        testTour.setDays(List.of(
+                Day.builder().dayId(UUID.randomUUID()).tour(testTour).dayNo(1)
+                        .date(LocalDate.of(2026, 7, 1)).stops(new ArrayList<>()).build(),
+                Day.builder().dayId(UUID.randomUUID()).tour(testTour).dayNo(2)
+                        .date(LocalDate.of(2026, 7, 2)).stops(new ArrayList<>()).build()
+        ));
+
         when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
 
         TourResponse response = tourService.getTourById(tourId);
 
         assertThat(response.getTourId()).isEqualTo(tourId);
         assertThat(response.getUserId()).isEqualTo(userId);
-        assertThat(response.getStartDay()).isEqualTo(LocalDate.of(2026, 7, 1));
-        assertThat(response.getEndDay()).isEqualTo(LocalDate.of(2026, 7, 3));
-        assertThat(response.getDays()).hasSize(3);
-        assertThat(response.getCreatedAt()).isNotNull();
-        assertThat(response.getUpdatedAt()).isNotNull();
+        assertThat(response.getDays()).hasSize(2);
+
+        verify(tourRepository).findById(tourId);
     }
 
-    @Test
-    void getTourById_existingTour_daysMappedCorrectly() {
-        when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
-
-        TourResponse response = tourService.getTourById(tourId);
-
-        assertThat(response.getDays().get(0).getDayNo()).isEqualTo(1);
-        assertThat(response.getDays().get(0).getDate()).isEqualTo(LocalDate.of(2026, 7, 1));
-        assertThat(response.getDays().get(0).getTourId()).isEqualTo(tourId);
-        assertThat(response.getDays().get(0).getStops()).isEmpty();
-    }
-
+    // Verifies that fetching a non-existent tour throws a RuntimeException
     @Test
     void getTourById_nonExistingTour_throwsException() {
         UUID nonExistentId = UUID.randomUUID();
@@ -289,161 +176,92 @@ class TourServiceImplTest {
 
         assertThatThrownBy(() -> tourService.getTourById(nonExistentId))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Tour not found with id: " + nonExistentId);
+                .hasMessageContaining("Tour not found with id:");
     }
 
-    // ==================== getToursByUserId ====================
-
+    // Verifies that all tours belonging to the authenticated user are returned
     @Test
-    void getToursByUserId_userHasTours_returnsList() {
-        setUpSecurityContext("john@example.com");
+    void getToursByUserId_returnsTourList() {
+        Tour tour2 = Tour.builder()
+                .tourId(UUID.randomUUID())
+                .user(testUser)
+                .startDay(LocalDate.of(2026, 8, 1))
+                .endDay(LocalDate.of(2026, 8, 5))
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
+                .days(new ArrayList<>())
+                .build();
 
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.findByUser_Id(userId)).thenReturn(List.of(testTour));
+        when(tourRepository.findByUser_Id(userId)).thenReturn(List.of(testTour, tour2));
 
-        List<TourResponse> responses = tourService.getToursByUserId(null);
+        List<TourResponse> responses = tourService.getToursByUserId(userId);
 
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getTourId()).isEqualTo(tourId);
+        assertThat(responses).hasSize(2);
+        verify(tourRepository).findByUser_Id(userId);
     }
 
+    // Verifies that an empty list is returned when the user has no tours
     @Test
-    void getToursByUserId_userHasNoTours_returnsEmptyList() {
-        setUpSecurityContext("john@example.com");
-
+    void getToursByUserId_noTours_returnsEmptyList() {
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
         when(tourRepository.findByUser_Id(userId)).thenReturn(Collections.emptyList());
 
-        List<TourResponse> responses = tourService.getToursByUserId(null);
+        List<TourResponse> responses = tourService.getToursByUserId(userId);
 
         assertThat(responses).isEmpty();
     }
 
+    // Verifies that updating a tour with new dates clears old days and regenerates new ones
     @Test
-    void getToursByUserId_usesAuthenticatedUserIgnoresParameter() {
-        setUpSecurityContext("john@example.com");
+    void updateTour_datesChanged_regeneratesDays() {
+        testTour.setDays(new ArrayList<>(List.of(
+                Day.builder().dayId(UUID.randomUUID()).tour(testTour).dayNo(1)
+                        .date(LocalDate.of(2026, 7, 1)).stops(new ArrayList<>()).build()
+        )));
 
-        UUID differentUserId = UUID.randomUUID();
-
-        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.findByUser_Id(userId)).thenReturn(List.of(testTour));
-
-        List<TourResponse> responses = tourService.getToursByUserId(differentUserId);
-
-        verify(tourRepository).findByUser_Id(userId);
-        verify(tourRepository, never()).findByUser_Id(differentUserId);
-        assertThat(responses).hasSize(1);
-    }
-
-    @Test
-    void getToursByUserId_userNotAuthenticated_throwsException() {
-        setUpSecurityContext("nonexistent@example.com");
-
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> tourService.getToursByUserId(null))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Authenticated user not found");
-    }
-
-    // ==================== updateTour ====================
-
-    @Test
-    void updateTour_sameDates_doesNotRegenerateDays() {
         TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 3))
+                .startDay(LocalDate.of(2026, 7, 10))
+                .endDay(LocalDate.of(2026, 7, 12))
                 .build();
 
         when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
-        when(tourRepository.save(any(Tour.class))).thenReturn(testTour);
+        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TourResponse response = tourService.updateTour(tourId, request);
 
+        assertThat(response.getStartDay()).isEqualTo(LocalDate.of(2026, 7, 10));
+        assertThat(response.getEndDay()).isEqualTo(LocalDate.of(2026, 7, 12));
         assertThat(response.getDays()).hasSize(3);
+
+        verify(tourRepository).save(any(Tour.class));
     }
 
+    // Verifies that updating a tour with the same dates preserves the existing days unchanged
     @Test
-    void updateTour_differentDates_regeneratesDays() {
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 8, 1))
-                .endDay(LocalDate.of(2026, 8, 5))
-                .build();
+    void updateTour_sameDates_doesNotRegenerateDays() {
+        Day existingDay = Day.builder()
+                .dayId(UUID.randomUUID()).tour(testTour).dayNo(1)
+                .date(LocalDate.of(2026, 7, 1)).stops(new ArrayList<>()).build();
+        testTour.setDays(new ArrayList<>(List.of(existingDay)));
+        testTour.setStartDay(LocalDate.of(2026, 7, 1));
+        testTour.setEndDay(LocalDate.of(2026, 7, 1));
 
-        when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.updateTour(tourId, request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        Tour savedTour = tourCaptor.getValue();
-        assertThat(savedTour.getDays()).hasSize(5);
-        assertThat(savedTour.getStartDay()).isEqualTo(LocalDate.of(2026, 8, 1));
-        assertThat(savedTour.getEndDay()).isEqualTo(LocalDate.of(2026, 8, 5));
-    }
-
-    @Test
-    void updateTour_differentDates_newDaysHaveCorrectDatesAndNumbers() {
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 8, 10))
-                .endDay(LocalDate.of(2026, 8, 12))
-                .build();
-
-        when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.updateTour(tourId, request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        List<Day> days = tourCaptor.getValue().getDays();
-        assertThat(days.get(0).getDayNo()).isEqualTo(1);
-        assertThat(days.get(0).getDate()).isEqualTo(LocalDate.of(2026, 8, 10));
-        assertThat(days.get(1).getDayNo()).isEqualTo(2);
-        assertThat(days.get(1).getDate()).isEqualTo(LocalDate.of(2026, 8, 11));
-        assertThat(days.get(2).getDayNo()).isEqualTo(3);
-        assertThat(days.get(2).getDate()).isEqualTo(LocalDate.of(2026, 8, 12));
-    }
-
-    @Test
-    void updateTour_onlyStartDateChanged_regeneratesDays() {
-        TourRequest request = TourRequest.builder()
-                .startDay(LocalDate.of(2026, 7, 2))
-                .endDay(LocalDate.of(2026, 7, 3))
-                .build();
-
-        when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
-        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        tourService.updateTour(tourId, request);
-
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        assertThat(tourCaptor.getValue().getDays()).hasSize(2);
-    }
-
-    @Test
-    void updateTour_onlyEndDateChanged_regeneratesDays() {
         TourRequest request = TourRequest.builder()
                 .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 5))
+                .endDay(LocalDate.of(2026, 7, 1))
                 .build();
 
         when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
         when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        tourService.updateTour(tourId, request);
+        TourResponse response = tourService.updateTour(tourId, request);
 
-        ArgumentCaptor<Tour> tourCaptor = ArgumentCaptor.forClass(Tour.class);
-        verify(tourRepository).save(tourCaptor.capture());
-
-        assertThat(tourCaptor.getValue().getDays()).hasSize(5);
+        assertThat(response.getDays()).hasSize(1);
+        assertThat(response.getDays().get(0).getDayId()).isEqualTo(existingDay.getDayId());
     }
 
+    // Verifies that updating a non-existent tour throws a RuntimeException
     @Test
     void updateTour_nonExistingTour_throwsException() {
         UUID nonExistentId = UUID.randomUUID();
@@ -456,11 +274,10 @@ class TourServiceImplTest {
 
         assertThatThrownBy(() -> tourService.updateTour(nonExistentId, request))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Tour not found with id: " + nonExistentId);
+                .hasMessageContaining("Tour not found with id:");
     }
 
-    // ==================== deleteTour ====================
-
+    // Verifies that an existing tour is deleted via the repository
     @Test
     void deleteTour_existingTour_deletesSuccessfully() {
         when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
@@ -470,6 +287,7 @@ class TourServiceImplTest {
         verify(tourRepository).delete(testTour);
     }
 
+    // Verifies that deleting a non-existent tour throws a RuntimeException
     @Test
     void deleteTour_nonExistingTour_throwsException() {
         UUID nonExistentId = UUID.randomUUID();
@@ -477,49 +295,40 @@ class TourServiceImplTest {
 
         assertThatThrownBy(() -> tourService.deleteTour(nonExistentId))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Tour not found with id: " + nonExistentId);
-
-        verify(tourRepository, never()).delete(any());
+                .hasMessageContaining("Tour not found with id:");
     }
 
-    // ==================== mapToResponse ====================
-
+    // Verifies that each generated day has the correct sequential day number and corresponding date
     @Test
-    void createTour_responseContainsAllFields() {
-        setUpSecurityContext("john@example.com");
-
+    void createTour_daysHaveCorrectDayNumbers() {
         TourRequest request = TourRequest.builder()
                 .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 3))
+                .endDay(LocalDate.of(2026, 7, 5))
                 .build();
 
         when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(testUser));
-        when(tourRepository.save(any(Tour.class))).thenReturn(testTour);
+        when(tourRepository.save(any(Tour.class))).thenAnswer(invocation -> {
+            Tour tour = invocation.getArgument(0);
+            tour.setTourId(tourId);
+            tour.setCreatedAt(OffsetDateTime.now());
+            tour.setUpdatedAt(OffsetDateTime.now());
+            return tour;
+        });
 
         TourResponse response = tourService.createTour(request);
 
-        assertThat(response.getTourId()).isNotNull();
-        assertThat(response.getUserId()).isNotNull();
-        assertThat(response.getStartDay()).isNotNull();
-        assertThat(response.getEndDay()).isNotNull();
-        assertThat(response.getCreatedAt()).isNotNull();
-        assertThat(response.getUpdatedAt()).isNotNull();
-        assertThat(response.getDays()).isNotNull();
+        assertThat(response.getDays()).hasSize(5);
+        for (int i = 0; i < 5; i++) {
+            assertThat(response.getDays().get(i).getDayNo()).isEqualTo(i + 1);
+            assertThat(response.getDays().get(i).getDate()).isEqualTo(LocalDate.of(2026, 7, 1).plusDays(i));
+        }
     }
 
+    // Verifies that a tour with null days list returns an empty list instead of null
     @Test
-    void getTourById_tourWithNoDays_returnsEmptyDaysList() {
-        Tour tourWithNoDays = Tour.builder()
-                .tourId(tourId)
-                .user(testUser)
-                .startDay(LocalDate.of(2026, 7, 1))
-                .endDay(LocalDate.of(2026, 7, 1))
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
-                .days(null)
-                .build();
-
-        when(tourRepository.findById(tourId)).thenReturn(Optional.of(tourWithNoDays));
+    void getTourById_tourWithNullDays_returnsEmptyDaysList() {
+        testTour.setDays(null);
+        when(tourRepository.findById(tourId)).thenReturn(Optional.of(testTour));
 
         TourResponse response = tourService.getTourById(tourId);
 

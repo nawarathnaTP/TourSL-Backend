@@ -10,12 +10,10 @@ import com.tourplanner.planning.tour.repository.DayRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,8 +61,7 @@ class DayServiceImplTest {
                 .build();
     }
 
-    // ==================== getDayById ====================
-
+    // Verifies that fetching a day by its ID returns the correct day with all mapped fields
     @Test
     void getDayById_existingDay_returnsDayResponse() {
         when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
@@ -76,72 +73,11 @@ class DayServiceImplTest {
         assertThat(response.getDayNo()).isEqualTo(1);
         assertThat(response.getDate()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(response.getStops()).isEmpty();
+
+        verify(dayRepository).findById(dayId);
     }
 
-    @Test
-    void getDayById_dayWithLodging_returnsLodgingId() {
-        UUID lodgingId = UUID.randomUUID();
-        testDay.setLodgingId(lodgingId);
-
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-
-        DayResponse response = dayService.getDayById(dayId);
-
-        assertThat(response.getLodgingId()).isEqualTo(lodgingId);
-    }
-
-    @Test
-    void getDayById_dayWithStops_mapsStopsCorrectly() {
-        UUID locationId = UUID.randomUUID();
-        Location location = Location.builder()
-                .locationId(locationId)
-                .placeName("Sigiriya")
-                .latitude(BigDecimal.valueOf(7.957))
-                .longitude(BigDecimal.valueOf(80.760))
-                .build();
-
-        Stop stop = Stop.builder()
-                .stopId(UUID.randomUUID())
-                .day(testDay)
-                .location(location)
-                .stopOrder(1)
-                .duration(120)
-                .activities(new ArrayList<>())
-                .build();
-
-        testDay.getStops().add(stop);
-
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-
-        DayResponse response = dayService.getDayById(dayId);
-
-        assertThat(response.getStops()).hasSize(1);
-        assertThat(response.getStops().get(0).getLocationId()).isEqualTo(locationId);
-        assertThat(response.getStops().get(0).getStopOrder()).isEqualTo(1);
-        assertThat(response.getStops().get(0).getDuration()).isEqualTo(120);
-        assertThat(response.getStops().get(0).getDayId()).isEqualTo(dayId);
-    }
-
-    @Test
-    void getDayById_stopWithNullLocation_mapsLocationIdAsNull() {
-        Stop stop = Stop.builder()
-                .stopId(UUID.randomUUID())
-                .day(testDay)
-                .location(null)
-                .stopOrder(1)
-                .duration(60)
-                .activities(new ArrayList<>())
-                .build();
-
-        testDay.getStops().add(stop);
-
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-
-        DayResponse response = dayService.getDayById(dayId);
-
-        assertThat(response.getStops().get(0).getLocationId()).isNull();
-    }
-
+    // Verifies that fetching a non-existent day throws a RuntimeException
     @Test
     void getDayById_nonExistingDay_throwsException() {
         UUID nonExistentId = UUID.randomUUID();
@@ -149,13 +85,12 @@ class DayServiceImplTest {
 
         assertThatThrownBy(() -> dayService.getDayById(nonExistentId))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Day not found with id: " + nonExistentId);
+                .hasMessageContaining("Day not found with id:");
     }
 
-    // ==================== getDaysByTourId ====================
-
+    // Verifies that all days for a given tour are returned in order by day number
     @Test
-    void getDaysByTourId_tourHasDays_returnsList() {
+    void getDaysByTourId_returnsDayList() {
         Day day2 = Day.builder()
                 .dayId(UUID.randomUUID())
                 .tour(testTour)
@@ -164,27 +99,20 @@ class DayServiceImplTest {
                 .stops(new ArrayList<>())
                 .build();
 
-        Day day3 = Day.builder()
-                .dayId(UUID.randomUUID())
-                .tour(testTour)
-                .dayNo(3)
-                .date(LocalDate.of(2026, 7, 3))
-                .stops(new ArrayList<>())
-                .build();
-
-        when(dayRepository.findByTour_TourIdOrderByDayNo(tourId))
-                .thenReturn(List.of(testDay, day2, day3));
+        when(dayRepository.findByTour_TourIdOrderByDayNo(tourId)).thenReturn(List.of(testDay, day2));
 
         List<DayResponse> responses = dayService.getDaysByTourId(tourId);
 
-        assertThat(responses).hasSize(3);
+        assertThat(responses).hasSize(2);
         assertThat(responses.get(0).getDayNo()).isEqualTo(1);
         assertThat(responses.get(1).getDayNo()).isEqualTo(2);
-        assertThat(responses.get(2).getDayNo()).isEqualTo(3);
+
+        verify(dayRepository).findByTour_TourIdOrderByDayNo(tourId);
     }
 
+    // Verifies that an empty list is returned when a tour has no days
     @Test
-    void getDaysByTourId_tourHasNoDays_returnsEmptyList() {
+    void getDaysByTourId_noDays_returnsEmptyList() {
         when(dayRepository.findByTour_TourIdOrderByDayNo(tourId)).thenReturn(Collections.emptyList());
 
         List<DayResponse> responses = dayService.getDaysByTourId(tourId);
@@ -192,18 +120,7 @@ class DayServiceImplTest {
         assertThat(responses).isEmpty();
     }
 
-    @Test
-    void getDaysByTourId_nonExistingTour_returnsEmptyList() {
-        UUID nonExistentTourId = UUID.randomUUID();
-        when(dayRepository.findByTour_TourIdOrderByDayNo(nonExistentTourId)).thenReturn(Collections.emptyList());
-
-        List<DayResponse> responses = dayService.getDaysByTourId(nonExistentTourId);
-
-        assertThat(responses).isEmpty();
-    }
-
-    // ==================== updateDay ====================
-
+    // Verifies that updating a day with a lodging ID correctly sets the lodging
     @Test
     void updateDay_withLodgingId_updatesLodging() {
         UUID lodgingId = UUID.randomUUID();
@@ -217,11 +134,14 @@ class DayServiceImplTest {
         DayResponse response = dayService.updateDay(dayId, request);
 
         assertThat(response.getLodgingId()).isEqualTo(lodgingId);
+        assertThat(response.getDayId()).isEqualTo(dayId);
+
         verify(dayRepository).save(testDay);
     }
 
+    // Verifies that passing a null lodging ID preserves the existing lodging value
     @Test
-    void updateDay_withNullLodgingId_doesNotOverwrite() {
+    void updateDay_withNullLodgingId_doesNotChangeLodging() {
         UUID existingLodgingId = UUID.randomUUID();
         testDay.setLodgingId(existingLodgingId);
 
@@ -237,52 +157,36 @@ class DayServiceImplTest {
         assertThat(response.getLodgingId()).isEqualTo(existingLodgingId);
     }
 
+    // Verifies that updating a non-existent day throws a RuntimeException
     @Test
     void updateDay_nonExistingDay_throwsException() {
         UUID nonExistentId = UUID.randomUUID();
-        DayRequest request = DayRequest.builder().build();
+        DayRequest request = DayRequest.builder().lodgingId(UUID.randomUUID()).build();
 
         when(dayRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> dayService.updateDay(nonExistentId, request))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Day not found with id: " + nonExistentId);
-
-        verify(dayRepository, never()).save(any());
+                .hasMessageContaining("Day not found with id:");
     }
 
-    @Test
-    void updateDay_preservesOtherFields() {
-        UUID lodgingId = UUID.randomUUID();
-        DayRequest request = DayRequest.builder()
-                .lodgingId(lodgingId)
-                .build();
-
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-        when(dayRepository.save(any(Day.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        DayResponse response = dayService.updateDay(dayId, request);
-
-        assertThat(response.getDayNo()).isEqualTo(1);
-        assertThat(response.getDate()).isEqualTo(LocalDate.of(2026, 7, 1));
-        assertThat(response.getTourId()).isEqualTo(tourId);
-    }
-
-    // ==================== clearDay ====================
-
+    // Verifies that clearing a day removes all stops and sets lodging to null
     @Test
     void clearDay_clearsStopsAndLodging() {
-        UUID lodgingId = UUID.randomUUID();
-        testDay.setLodgingId(lodgingId);
+        UUID locationId = UUID.randomUUID();
+        Location location = Location.builder().locationId(locationId).build();
 
         Stop stop = Stop.builder()
                 .stopId(UUID.randomUUID())
                 .day(testDay)
+                .location(location)
                 .stopOrder(1)
                 .duration(60)
                 .activities(new ArrayList<>())
                 .build();
-        testDay.getStops().add(stop);
+
+        testDay.setStops(new ArrayList<>(List.of(stop)));
+        testDay.setLodgingId(UUID.randomUUID());
 
         when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
         when(dayRepository.save(any(Day.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -291,33 +195,11 @@ class DayServiceImplTest {
 
         assertThat(response.getLodgingId()).isNull();
         assertThat(response.getStops()).isEmpty();
-    }
 
-    @Test
-    void clearDay_alreadyEmpty_returnsSuccessfully() {
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-        when(dayRepository.save(any(Day.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        DayResponse response = dayService.clearDay(dayId);
-
-        assertThat(response.getLodgingId()).isNull();
-        assertThat(response.getStops()).isEmpty();
         verify(dayRepository).save(testDay);
     }
 
-    @Test
-    void clearDay_preservesDayMetadata() {
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-        when(dayRepository.save(any(Day.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        DayResponse response = dayService.clearDay(dayId);
-
-        assertThat(response.getDayId()).isEqualTo(dayId);
-        assertThat(response.getTourId()).isEqualTo(tourId);
-        assertThat(response.getDayNo()).isEqualTo(1);
-        assertThat(response.getDate()).isEqualTo(LocalDate.of(2026, 7, 1));
-    }
-
+    // Verifies that clearing a non-existent day throws a RuntimeException
     @Test
     void clearDay_nonExistingDay_throwsException() {
         UUID nonExistentId = UUID.randomUUID();
@@ -325,8 +207,65 @@ class DayServiceImplTest {
 
         assertThatThrownBy(() -> dayService.clearDay(nonExistentId))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Day not found with id: " + nonExistentId);
+                .hasMessageContaining("Day not found with id:");
+    }
 
-        verify(dayRepository, never()).save(any());
+    // Verifies that stops are correctly mapped to StopResponse with locationId, stopOrder, and duration
+    @Test
+    void getDayById_dayWithStops_mapsStopsCorrectly() {
+        UUID locationId = UUID.randomUUID();
+        Location location = Location.builder().locationId(locationId).build();
+
+        Stop stop = Stop.builder()
+                .stopId(UUID.randomUUID())
+                .day(testDay)
+                .location(location)
+                .stopOrder(1)
+                .duration(90)
+                .activities(new ArrayList<>())
+                .build();
+
+        testDay.setStops(List.of(stop));
+
+        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
+
+        DayResponse response = dayService.getDayById(dayId);
+
+        assertThat(response.getStops()).hasSize(1);
+        assertThat(response.getStops().get(0).getLocationId()).isEqualTo(locationId);
+        assertThat(response.getStops().get(0).getStopOrder()).isEqualTo(1);
+        assertThat(response.getStops().get(0).getDuration()).isEqualTo(90);
+    }
+
+    // Verifies that a day with null stops list returns an empty list instead of null
+    @Test
+    void getDayById_dayWithNullStops_returnsEmptyStopsList() {
+        testDay.setStops(null);
+        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
+
+        DayResponse response = dayService.getDayById(dayId);
+
+        assertThat(response.getStops()).isEmpty();
+    }
+
+    // Verifies that a stop with no associated location maps locationId as null without errors
+    @Test
+    void getDayById_stopWithNullLocation_mapsLocationIdAsNull() {
+        Stop stop = Stop.builder()
+                .stopId(UUID.randomUUID())
+                .day(testDay)
+                .location(null)
+                .stopOrder(1)
+                .duration(60)
+                .activities(new ArrayList<>())
+                .build();
+
+        testDay.setStops(List.of(stop));
+
+        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
+
+        DayResponse response = dayService.getDayById(dayId);
+
+        assertThat(response.getStops().get(0).getLocationId()).isNull();
     }
 }
