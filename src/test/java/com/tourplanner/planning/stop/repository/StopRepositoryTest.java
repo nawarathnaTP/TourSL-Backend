@@ -269,18 +269,20 @@ class StopRepositoryTest {
     // Verifies that deleting a stop cascades deletion to its activities
     @Test
     void delete_stop_cascadesDeleteToActivities() {
-        Stop stop = stopRepository.save(Stop.builder()
-                .day(savedDay).location(savedLocation).stopOrder(1).duration(120).build());
+        Stop stop = Stop.builder()
+                .day(savedDay).location(savedLocation).stopOrder(1).duration(120).build();
 
-        Activity activity = activityRepository.save(Activity.builder()
-                .stop(stop).duration(60).description("Climb the rock").build());
+        Activity activity = Activity.builder()
+                .stop(stop).duration(60).description("Climb the rock").build();
+        stop.getActivities().add(activity);
 
-        UUID stopId = stop.getStopId();
-        UUID activityId = activity.getActivityId();
+        Stop saved = stopRepository.saveAndFlush(stop);
+        UUID stopId = saved.getStopId();
+        UUID activityId = saved.getActivities().get(0).getActivityId();
 
         assertThat(activityRepository.findById(activityId)).isPresent();
 
-        stopRepository.delete(stop);
+        stopRepository.delete(saved);
         stopRepository.flush();
 
         assertThat(stopRepository.findById(stopId)).isEmpty();
