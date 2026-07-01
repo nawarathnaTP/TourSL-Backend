@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -186,11 +186,10 @@
 				<version>1.15.0</version>
 				<configuration>
 					<targetClasses>
-						<param>com.yourcompany.yourapp.service.*</param>
-						<param>com.yourcompany.yourapp.controller.*</param>
+						<param>com.tourplanner.planning.*</param>
 					</targetClasses>
 					<targetTests>
-						<param>com.yourcompany.yourapp.*Test</param>
+						<param>com.tourplanner.planning.*Test</param>
 					</targetTests>
 					<mutationThreshold>70</mutationThreshold>
 					<outputFormats>
