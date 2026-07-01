@@ -1,0 +1,21 @@
+[33m1b3c005[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Wildcards fixed
+[33m861263d[m[33m ([m[1;31morigin/main[m[33m)[m pitest added: mutation testing
+[33m9c81cde[m Tests for tour domain
+[33me41ef64[m tour controllers added
+[33m3f1fa21[m Authentication handled
+[33m04f8e40[m Tour service added
+[33m5990645[m migration added
+[33mac23c67[m Database containerised
+[33md94fa5e[m Datatype mismatch fixed
+[33ma875b99[m flyway mismatch resolved
+[33m0d22e3d[m JWT naming fixed
+[33m7a62358[m Consistency ensured
+[33mca3654c[m naming convention fixed
+[33mfd6414d[m Service interfaces added
+[33m1329b48[m DTOs added
+[33m7501226[m User and Accounts repositary fixed
+[33m1bde4bc[m Added tour package
+[33m7a5c5b4[m Unit tests added
+[33m7d7575d[m Authentication added
+[33m435f89f[m User classes created
+[33m265d71d[m Intial config
