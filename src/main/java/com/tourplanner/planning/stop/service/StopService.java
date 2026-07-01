@@ -18,5 +18,7 @@ public interface StopService {
 
     List<StopResponse> reorderStops(UUID dayId, List<UUID> stopIds);
 
+    StopResponse moveStop(UUID stopId, UUID targetDayId, Integer targetOrder);
+
     void deleteStop(UUID stopId);
 }
