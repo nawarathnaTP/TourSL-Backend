@@ -1,7 +1,8 @@
 package com.tourplanner.planning.stop.service;
 
+import com.tourplanner.planning.location.dto.LocationRequest;
 import com.tourplanner.planning.location.entity.Location;
-import com.tourplanner.planning.location.repository.LocationRepository;
+import com.tourplanner.planning.location.service.LocationService;
 import com.tourplanner.planning.stop.dto.StopRequest;
 import com.tourplanner.planning.stop.dto.StopResponse;
 import com.tourplanner.planning.stop.entity.Activity;
@@ -40,7 +41,7 @@ class StopServiceImplTest {
     private DayRepository dayRepository;
 
     @Mock
-    private LocationRepository locationRepository;
+    private LocationService locationService;
 
     @InjectMocks
     private StopServiceImpl stopService;
@@ -92,15 +93,22 @@ class StopServiceImplTest {
     // Verifies that a stop is created with the correct day, location, order, and duration
     @Test
     void addStop_validRequest_returnsStopResponse() {
+        LocationRequest locationRequest = LocationRequest.builder()
+                .externalId("ext-123")
+                .placeName("Sigiriya")
+                .latitude(BigDecimal.valueOf(7.957))
+                .longitude(BigDecimal.valueOf(80.760))
+                .build();
+
         StopRequest request = StopRequest.builder()
                 .dayId(dayId)
-                .locationId(locationId)
+                .location(locationRequest)
                 .stopOrder(1)
                 .duration(120)
                 .build();
 
         when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-        when(locationRepository.findById(locationId)).thenReturn(Optional.of(testLocation));
+        when(locationService.findOrCreate(any(LocationRequest.class))).thenReturn(testLocation);
         when(stopRepository.save(any(Stop.class))).thenAnswer(invocation -> {
             Stop stop = invocation.getArgument(0);
             stop.setStopId(stopId);
@@ -115,15 +123,21 @@ class StopServiceImplTest {
         assertThat(response.getStopOrder()).isEqualTo(1);
         assertThat(response.getDuration()).isEqualTo(120);
 
+        verify(locationService).findOrCreate(any(LocationRequest.class));
         verify(stopRepository).save(any(Stop.class));
     }
 
     // Verifies that adding a stop with a non-existent day throws an exception
     @Test
     void addStop_dayNotFound_throwsException() {
+        LocationRequest locationRequest = LocationRequest.builder()
+                .externalId("ext-123")
+                .placeName("Sigiriya")
+                .build();
+
         StopRequest request = StopRequest.builder()
                 .dayId(UUID.randomUUID())
-                .locationId(locationId)
+                .location(locationRequest)
                 .build();
 
         when(dayRepository.findById(request.getDayId())).thenReturn(Optional.empty());
@@ -131,22 +145,6 @@ class StopServiceImplTest {
         assertThatThrownBy(() -> stopService.addStop(request))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Day not found with id:");
-    }
-
-    // Verifies that adding a stop with a non-existent location throws an exception
-    @Test
-    void addStop_locationNotFound_throwsException() {
-        StopRequest request = StopRequest.builder()
-                .dayId(dayId)
-                .locationId(UUID.randomUUID())
-                .build();
-
-        when(dayRepository.findById(dayId)).thenReturn(Optional.of(testDay));
-        when(locationRepository.findById(request.getLocationId())).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> stopService.addStop(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Location not found with id:");
     }
 
     // Verifies that fetching a stop by ID returns the correct response with activities
@@ -252,33 +250,24 @@ class StopServiceImplTest {
                 .longitude(BigDecimal.valueOf(80.636))
                 .build();
 
+        LocationRequest locationRequest = LocationRequest.builder()
+                .externalId("ext-456")
+                .placeName("Kandy")
+                .latitude(BigDecimal.valueOf(7.291))
+                .longitude(BigDecimal.valueOf(80.636))
+                .build();
+
         StopRequest request = StopRequest.builder()
-                .locationId(newLocationId)
+                .location(locationRequest)
                 .build();
 
         when(stopRepository.findById(stopId)).thenReturn(Optional.of(testStop));
-        when(locationRepository.findById(newLocationId)).thenReturn(Optional.of(newLocation));
+        when(locationService.findOrCreate(any(LocationRequest.class))).thenReturn(newLocation);
         when(stopRepository.save(any(Stop.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         StopResponse response = stopService.updateStop(stopId, request);
 
         assertThat(response.getLocationId()).isEqualTo(newLocationId);
-    }
-
-    // Verifies that updating with a non-existent location throws an exception
-    @Test
-    void updateStop_locationNotFound_throwsException() {
-        UUID fakeLocationId = UUID.randomUUID();
-        StopRequest request = StopRequest.builder()
-                .locationId(fakeLocationId)
-                .build();
-
-        when(stopRepository.findById(stopId)).thenReturn(Optional.of(testStop));
-        when(locationRepository.findById(fakeLocationId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> stopService.updateStop(stopId, request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Location not found with id:");
     }
 
     // Verifies that updating a non-existent stop throws an exception

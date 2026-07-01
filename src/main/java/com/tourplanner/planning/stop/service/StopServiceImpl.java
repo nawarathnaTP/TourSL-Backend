@@ -1,7 +1,7 @@
 package com.tourplanner.planning.stop.service;
 
 import com.tourplanner.planning.location.entity.Location;
-import com.tourplanner.planning.location.repository.LocationRepository;
+import com.tourplanner.planning.location.service.LocationService;
 import com.tourplanner.planning.stop.dto.ActivityResponse;
 import com.tourplanner.planning.stop.dto.StopRequest;
 import com.tourplanner.planning.stop.dto.StopResponse;
@@ -23,7 +23,7 @@ public class StopServiceImpl implements StopService {
 
     private final StopRepository stopRepository;
     private final DayRepository dayRepository;
-    private final LocationRepository locationRepository;
+    private final LocationService locationService;
 
     @Override
     @Transactional
@@ -31,8 +31,7 @@ public class StopServiceImpl implements StopService {
         Day day = dayRepository.findById(request.getDayId())
                 .orElseThrow(() -> new RuntimeException("Day not found with id: " + request.getDayId()));
 
-        Location location = locationRepository.findById(request.getLocationId())
-                .orElseThrow(() -> new RuntimeException("Location not found with id: " + request.getLocationId()));
+        Location location = locationService.findOrCreate(request.getLocation());
 
         Stop stop = Stop.builder()
                 .day(day)
@@ -67,9 +66,8 @@ public class StopServiceImpl implements StopService {
         Stop stop = stopRepository.findById(stopId)
                 .orElseThrow(() -> new RuntimeException("Stop not found with id: " + stopId));
 
-        if (request.getLocationId() != null) {
-            Location location = locationRepository.findById(request.getLocationId())
-                    .orElseThrow(() -> new RuntimeException("Location not found with id: " + request.getLocationId()));
+        if (request.getLocation() != null) {
+            Location location = locationService.findOrCreate(request.getLocation());
             stop.setLocation(location);
         }
 

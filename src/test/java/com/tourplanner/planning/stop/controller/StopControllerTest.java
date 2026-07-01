@@ -72,7 +72,7 @@ class StopControllerTest {
 
         mockMvc.perform(post("/api/stops")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dayId\":\"" + dayId + "\",\"locationId\":\"" + locationId + "\",\"stopOrder\":1,\"duration\":120}"))
+                        .content("{\"dayId\":\"" + dayId + "\",\"location\":{\"externalId\":\"ext-123\",\"placeName\":\"Sigiriya\",\"latitude\":7.957,\"longitude\":80.760},\"stopOrder\":1,\"duration\":120}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.stopId").value(stopId.toString()))
                 .andExpect(jsonPath("$.dayId").value(dayId.toString()))
