@@ -2,6 +2,8 @@ package com.tourplanner.planning.stop.service;
 
 import com.tourplanner.planning.location.entity.Location;
 import com.tourplanner.planning.location.service.LocationService;
+import com.tourplanner.planning.route.entity.Route;
+import com.tourplanner.planning.route.repository.RouteRepository;
 import com.tourplanner.planning.stop.dto.ActivityResponse;
 import com.tourplanner.planning.stop.dto.StopRequest;
 import com.tourplanner.planning.stop.dto.StopResponse;
@@ -24,6 +26,7 @@ public class StopServiceImpl implements StopService {
     private final StopRepository stopRepository;
     private final DayRepository dayRepository;
     private final LocationService locationService;
+    private final RouteRepository routeRepository;
 
     @Override
     @Transactional
@@ -92,6 +95,9 @@ public class StopServiceImpl implements StopService {
             throw new RuntimeException("Provided stop IDs do not match the number of stops for day: " + dayId);
         }
 
+        // Capture old consecutive pairs before reordering
+        List<UUID> oldOrder = stops.stream().map(Stop::getStopId).toList();
+
         // Set all orders to negative values first to avoid unique constraint violations
         for (int i = 0; i < stops.size(); i++) {
             stops.get(i).setStopOrder(-(i + 1));
@@ -109,6 +115,9 @@ public class StopServiceImpl implements StopService {
         }
         stopRepository.saveAllAndFlush(stops);
 
+        // Invalidate routes for changed consecutive pairs
+        invalidateChangedRoutes(oldOrder, stopIds);
+
         return stopRepository.findByDay_DayIdOrderByStopOrder(dayId).stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -125,6 +134,14 @@ public class StopServiceImpl implements StopService {
 
         UUID sourceDayId = stop.getDay().getDayId();
         int oldOrder = stop.getStopOrder();
+
+        // Capture old consecutive pairs for both source and target days before moving
+        List<UUID> oldSourceOrder = stopRepository.findByDay_DayIdOrderByStopOrder(sourceDayId)
+                .stream().map(Stop::getStopId).toList();
+        List<UUID> oldTargetOrder = sourceDayId.equals(targetDayId)
+                ? oldSourceOrder
+                : stopRepository.findByDay_DayIdOrderByStopOrder(targetDayId)
+                        .stream().map(Stop::getStopId).toList();
 
         // Remove from source day: shift stops above the removed position down by 1
         if (!sourceDayId.equals(targetDayId)) {
@@ -191,6 +208,17 @@ public class StopServiceImpl implements StopService {
         stop.setStopOrder(targetOrder);
         Stop savedStop = stopRepository.saveAndFlush(stop);
 
+        // Invalidate routes for changed consecutive pairs in both days
+        List<UUID> newSourceOrder = stopRepository.findByDay_DayIdOrderByStopOrder(sourceDayId)
+                .stream().map(Stop::getStopId).toList();
+        invalidateChangedRoutes(oldSourceOrder, newSourceOrder);
+
+        if (!sourceDayId.equals(targetDayId)) {
+            List<UUID> newTargetOrder = stopRepository.findByDay_DayIdOrderByStopOrder(targetDayId)
+                    .stream().map(Stop::getStopId).toList();
+            invalidateChangedRoutes(oldTargetOrder, newTargetOrder);
+        }
+
         return mapToResponse(savedStop);
     }
 
@@ -199,7 +227,36 @@ public class StopServiceImpl implements StopService {
     public void deleteStop(UUID stopId) {
         Stop stop = stopRepository.findById(stopId)
                 .orElseThrow(() -> new RuntimeException("Stop not found with id: " + stopId));
+
+        // Delete all routes involving this stop
+        List<Route> affectedRoutes = routeRepository.findByStopId(stopId);
+        routeRepository.deleteAll(affectedRoutes);
+
         stopRepository.delete(stop);
+    }
+
+    /**
+     * Compares old and new consecutive pairs, deletes routes for pairs that changed.
+     */
+    private void invalidateChangedRoutes(List<UUID> oldOrder, List<UUID> newOrder) {
+        for (int i = 0; i < oldOrder.size() - 1; i++) {
+            UUID oldStart = oldOrder.get(i);
+            UUID oldEnd = oldOrder.get(i + 1);
+
+            // Check if this pair still exists in the new order
+            boolean pairPreserved = false;
+            for (int j = 0; j < newOrder.size() - 1; j++) {
+                if (newOrder.get(j).equals(oldStart) && newOrder.get(j + 1).equals(oldEnd)) {
+                    pairPreserved = true;
+                    break;
+                }
+            }
+
+            if (!pairPreserved) {
+                routeRepository.findByStartStop_StopIdAndEndStop_StopId(oldStart, oldEnd)
+                        .ifPresent(routeRepository::delete);
+            }
+        }
     }
 
     private StopResponse mapToResponse(Stop stop) {

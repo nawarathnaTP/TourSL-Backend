@@ -3,6 +3,7 @@ package com.tourplanner.planning.stop.service;
 import com.tourplanner.planning.location.dto.LocationRequest;
 import com.tourplanner.planning.location.entity.Location;
 import com.tourplanner.planning.location.service.LocationService;
+import com.tourplanner.planning.route.repository.RouteRepository;
 import com.tourplanner.planning.stop.dto.StopRequest;
 import com.tourplanner.planning.stop.dto.StopResponse;
 import com.tourplanner.planning.stop.entity.Activity;
@@ -42,6 +43,9 @@ class StopServiceImplTest {
 
     @Mock
     private LocationService locationService;
+
+    @Mock
+    private RouteRepository routeRepository;
 
     @InjectMocks
     private StopServiceImpl stopService;
