@@ -30,7 +30,15 @@ public class TourServiceImpl implements TourService {
     @Override
     @Transactional
     public TourResponse createTour(TourRequest request) {
+        if (request.getStartDay().isAfter(request.getEndDay())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
         User user = getAuthenticatedUser();
+
+        if (tourRepository.existsOverlappingTour(user.getId(), request.getStartDay(), request.getEndDay())) {
+            throw new IllegalArgumentException("Tour dates overlap with an existing tour");
+        }
 
         Tour tour = Tour.builder()
                 .user(user)
@@ -76,8 +84,16 @@ public class TourServiceImpl implements TourService {
     @Override
     @Transactional
     public TourResponse updateTour(UUID tourId, TourRequest request) {
+        if (request.getStartDay().isAfter(request.getEndDay())) {
+            throw new IllegalArgumentException("Start date cannot be after end date");
+        }
+
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(() -> new RuntimeException("Tour not found with id: " + tourId));
+
+        if (tourRepository.existsOverlappingTourExcluding(tour.getUser().getId(), tourId, request.getStartDay(), request.getEndDay())) {
+            throw new IllegalArgumentException("Tour dates overlap with an existing tour");
+        }
 
         LocalDate oldStart = tour.getStartDay();
         LocalDate oldEnd = tour.getEndDay();
