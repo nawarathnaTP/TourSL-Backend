@@ -17,19 +17,29 @@ public class AuthController {
 
 	private final AuthService authService;
 
-	@PostMapping("/register")
-	public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-		return ResponseEntity.ok(authService.register(request));
+	@PostMapping("/tourist/register")
+	public ResponseEntity<AuthResponse> registerTourist(@Valid @RequestBody RegisterRequest request) {
+		return ResponseEntity.ok(authService.registerTourist(request));
+	}
+
+	@PostMapping("/tourist/google")
+	public ResponseEntity<AuthResponse> googleAuthTourist(@Valid @RequestBody GoogleAuthRequest request) {
+		return ResponseEntity.ok(authService.googleAuthTourist(request));
+	}
+
+	@PostMapping("/guide/register")
+	public ResponseEntity<AuthResponse> registerGuide(@Valid @RequestBody RegisterRequest request) {
+		return ResponseEntity.ok(authService.registerGuide(request));
+	}
+
+	@PostMapping("/guide/google")
+	public ResponseEntity<AuthResponse> googleAuthGuide(@Valid @RequestBody GoogleAuthRequest request) {
+		return ResponseEntity.ok(authService.googleAuthGuide(request));
 	}
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
 		return ResponseEntity.ok(authService.login(request));
-	}
-
-	@PostMapping("/google")
-	public ResponseEntity<AuthResponse> googleAuth(@Valid @RequestBody GoogleAuthRequest request) {
-		return ResponseEntity.ok(authService.googleAuth(request));
 	}
 
 	@PostMapping("/refresh")

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tourist")
+@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
@@ -35,6 +35,10 @@ public class User {
 
 	@Column(name="picture_url")
 	private String profilePictureUrl;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private Role role;
 
 	@Column(name="created_at",nullable = false, updatable = false)
 	private LocalDateTime createdAt;

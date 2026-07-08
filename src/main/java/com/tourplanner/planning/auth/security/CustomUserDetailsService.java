@@ -2,6 +2,7 @@ package com.tourplanner.planning.auth.security;
 
 import com.tourplanner.planning.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,7 +24,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 		return new org.springframework.security.core.userdetails.User(
 				user.getEmail(),
 				"",
-				Collections.emptyList()
+				Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
 		);
 	}
 }
