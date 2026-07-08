@@ -190,6 +190,9 @@ src/main/java/com/tourplanner/planning
       └── service           # BookingService interface + BookingServiceImpl
 ```
 
+## Database Design
+![img_1.png](img_1.png)
+
 ## Database Migrations
 
 | Migration | Description |
