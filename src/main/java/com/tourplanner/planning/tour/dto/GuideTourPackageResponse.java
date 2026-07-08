@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -17,6 +18,8 @@ public class GuideTourPackageResponse {
     private UUID packageId;
     private UUID tourId;
     private String tourTitle;
+    private LocalDate startDay;
+    private LocalDate endDay;
     private String description;
     private String coverImageUrl;
     private Integer maxSlots;

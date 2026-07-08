@@ -16,6 +16,8 @@ public interface GuideTourPackageService {
 
     GuideTourPackageResponse cancelPackage(UUID tourId);
 
+    GuideTourPackageResponse unpublishPackage(UUID tourId);
+
     List<GuideTourPackageResponse> getMyPackages();
 
     List<GuideTourPackageResponse> getPublishedPackages();

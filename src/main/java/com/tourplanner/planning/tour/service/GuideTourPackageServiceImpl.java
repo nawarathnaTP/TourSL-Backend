@@ -2,6 +2,8 @@ package com.tourplanner.planning.tour.service;
 
 import com.tourplanner.planning.auth.entity.User;
 import com.tourplanner.planning.auth.repository.UserRepository;
+import com.tourplanner.planning.booking.entity.BookingStatus;
+import com.tourplanner.planning.booking.repository.BookingRepository;
 import com.tourplanner.planning.tour.dto.GuideTourPackageRequest;
 import com.tourplanner.planning.tour.dto.GuideTourPackageResponse;
 import com.tourplanner.planning.tour.entity.GuideTourPackage;
@@ -20,6 +22,7 @@ import java.util.UUID;
 public class GuideTourPackageServiceImpl implements GuideTourPackageService {
 
     private final GuideTourPackageRepository guideTourPackageRepository;
+    private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -79,6 +82,28 @@ public class GuideTourPackageServiceImpl implements GuideTourPackageService {
     }
 
     @Override
+    @Transactional
+    public GuideTourPackageResponse unpublishPackage(UUID tourId) {
+        GuideTourPackage pkg = getOwnedPackage(tourId);
+
+        if (pkg.getStatus() != PackageStatus.PUBLISHED) {
+            throw new IllegalArgumentException("Can only unpublish packages that are currently PUBLISHED");
+        }
+
+        boolean hasActiveBookings = bookingRepository.existsByGuideTourPackage_PackageIdAndStatusIn(
+                pkg.getPackageId(), List.of(BookingStatus.PENDING_PAYMENT, BookingStatus.CONFIRMED));
+
+        if (hasActiveBookings) {
+            throw new IllegalArgumentException("Cannot revert to draft while there are active bookings");
+        }
+
+        pkg.setIsPublished(false);
+        pkg.setStatus(PackageStatus.DRAFT);
+
+        return mapToResponse(guideTourPackageRepository.save(pkg));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<GuideTourPackageResponse> getMyPackages() {
         User user = getAuthenticatedUser();
@@ -112,6 +137,8 @@ public class GuideTourPackageServiceImpl implements GuideTourPackageService {
                 .packageId(pkg.getPackageId())
                 .tourId(pkg.getTour().getTourId())
                 .tourTitle(pkg.getTour().getTitle())
+                .startDay(pkg.getTour().getStartDay())
+                .endDay(pkg.getTour().getEndDay())
                 .description(pkg.getDescription())
                 .coverImageUrl(pkg.getCoverImageUrl())
                 .maxSlots(pkg.getMaxSlots())

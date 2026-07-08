@@ -10,7 +10,7 @@ public interface BookingService {
 
 	BookingResponse createBooking(BookingRequest request);
 
-	BookingResponse confirmBooking(UUID bookingId);
+	BookingResponse payBooking(UUID bookingId);
 
 	BookingResponse cancelBooking(UUID bookingId);
 

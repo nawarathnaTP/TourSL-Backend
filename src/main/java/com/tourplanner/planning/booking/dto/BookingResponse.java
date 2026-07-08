@@ -17,6 +17,7 @@ public class BookingResponse {
 
 	private UUID bookingId;
 	private UUID packageId;
+	private UUID tourId;
 	private String tourTitle;
 	private UUID touristId;
 	private Integer slotsBooked;

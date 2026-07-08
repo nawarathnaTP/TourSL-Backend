@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,32 +31,17 @@ public class BookingServiceImpl implements BookingService {
 	private final UserRepository userRepository;
 
 	/**
-	 * Creates a booking for a published guide tour package.
+	 * Creates a booking in PENDING_PAYMENT state.
 	 *
-	 * Overbooking prevention:
-	 * - Checks availableSlots >= requested slots before booking
-	 * - Uses @Version (optimistic locking) on GuideTourPackage so that if two
-	 *   tourists book simultaneously, the second one gets an ObjectOptimisticLockingFailureException
-	 *   rather than both succeeding and overselling slots
-	 * - availableSlots is decremented atomically within the same transaction
-	 * - Auto-sets package status to FILLED when availableSlots hits 0
-	 *
-	 * ACID compliance:
-	 * - @Transactional ensures the slot decrement + booking creation happen atomically
-	 * - If either fails, both are rolled back
-	 *
-	 * Additional validations:
-	 * - Only tourists can book (not guides booking their own packages)
-	 * - Package must be PUBLISHED
-	 * - Duplicate booking prevention (one booking per tourist per package)
-	 * - Guides cannot book their own packages
+	 * Slots are NOT decremented yet — that happens on payment.
+	 * Validates: tourist role, package published, tour not started,
+	 * no duplicate bookings, and sufficient slots available.
 	 */
 	@Override
 	@Transactional
 	public BookingResponse createBooking(BookingRequest request) {
 		User tourist = getAuthenticatedUser();
 
-		// Only tourists can book
 		if (tourist.getRole() != Role.TOURIST) {
 			throw new IllegalArgumentException("Only tourists can book packages");
 		}
@@ -63,44 +49,27 @@ public class BookingServiceImpl implements BookingService {
 		GuideTourPackage pkg = guideTourPackageRepository.findById(request.getPackageId())
 				.orElseThrow(() -> new RuntimeException("Package not found: " + request.getPackageId()));
 
-		// Package must be published
 		if (pkg.getStatus() != PackageStatus.PUBLISHED) {
 			throw new IllegalArgumentException("Package is not available for booking");
 		}
 
-		// Prevent duplicate bookings
+		if (!pkg.getTour().getStartDay().isAfter(LocalDate.now())) {
+			throw new IllegalArgumentException("Cannot book a tour that has already started or passed");
+		}
+
 		if (bookingRepository.existsByTourist_IdAndGuideTourPackage_PackageId(tourist.getId(), pkg.getPackageId())) {
 			throw new IllegalArgumentException("You have already booked this package");
 		}
 
-		// Check slot availability (first check before optimistic lock)
 		if (pkg.getAvailableSlots() < request.getSlotsBooked()) {
 			throw new IllegalArgumentException(
 					"Not enough slots available. Requested: " + request.getSlotsBooked()
 					+ ", Available: " + pkg.getAvailableSlots());
 		}
 
-		// Decrement available slots — optimistic locking via @Version
-		// protects against concurrent modifications
-		try {
-			pkg.setAvailableSlots(pkg.getAvailableSlots() - request.getSlotsBooked());
-
-			// Auto-fill when no slots remain
-			if (pkg.getAvailableSlots() == 0) {
-				pkg.setStatus(PackageStatus.FILLED);
-			}
-
-			guideTourPackageRepository.save(pkg);
-		} catch (ObjectOptimisticLockingFailureException e) {
-			throw new IllegalArgumentException(
-					"Booking failed due to concurrent modification. Please try again.");
-		}
-
-		// Calculate total price
 		BigDecimal totalPrice = pkg.getPricePerSlot()
 				.multiply(BigDecimal.valueOf(request.getSlotsBooked()));
 
-		// Create booking — within the same transaction as slot decrement
 		Booking booking = Booking.builder()
 				.guideTourPackage(pkg)
 				.tourist(tourist)
@@ -112,25 +81,49 @@ public class BookingServiceImpl implements BookingService {
 	}
 
 	/**
-	 * Guide confirms a pending booking.
+	 * Simulates payment and auto-confirms the booking.
 	 *
-	 * Only the guide who owns the package can confirm.
+	 * On successful payment:
+	 * - Decrements available slots (with optimistic locking for overbooking prevention)
+	 * - Sets booking status to CONFIRMED
+	 * - Auto-sets package to FILLED when no slots remain
+	 *
+	 * When Stripe is integrated, this logic moves to the webhook handler.
 	 */
 	@Override
 	@Transactional
-	public BookingResponse confirmBooking(UUID bookingId) {
+	public BookingResponse payBooking(UUID bookingId) {
 		Booking booking = bookingRepository.findById(bookingId)
 				.orElseThrow(() -> new RuntimeException("Booking not found: " + bookingId));
 
 		User user = getAuthenticatedUser();
-		UUID packageOwnerId = booking.getGuideTourPackage().getTour().getUser().getId();
-
-		if (!packageOwnerId.equals(user.getId())) {
-			throw new IllegalArgumentException("You do not own this package");
+		if (!booking.getTourist().getId().equals(user.getId())) {
+			throw new IllegalArgumentException("You can only pay for your own bookings");
 		}
 
-		if (booking.getStatus() != BookingStatus.PENDING) {
-			throw new IllegalArgumentException("Can only confirm PENDING bookings");
+		if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+			throw new IllegalArgumentException("Booking is not awaiting payment");
+		}
+
+		GuideTourPackage pkg = booking.getGuideTourPackage();
+
+		if (pkg.getAvailableSlots() < booking.getSlotsBooked()) {
+			throw new IllegalArgumentException(
+					"Not enough slots available. Requested: " + booking.getSlotsBooked()
+					+ ", Available: " + pkg.getAvailableSlots());
+		}
+
+		try {
+			pkg.setAvailableSlots(pkg.getAvailableSlots() - booking.getSlotsBooked());
+
+			if (pkg.getAvailableSlots() == 0) {
+				pkg.setStatus(PackageStatus.FILLED);
+			}
+
+			guideTourPackageRepository.save(pkg);
+		} catch (ObjectOptimisticLockingFailureException e) {
+			throw new IllegalArgumentException(
+					"Payment failed due to concurrent modification. Please try again.");
 		}
 
 		booking.setStatus(BookingStatus.CONFIRMED);
@@ -142,7 +135,7 @@ public class BookingServiceImpl implements BookingService {
 	 *
 	 * - Tourist can cancel their own booking
 	 * - Guide can cancel bookings on their packages
-	 * - Cancelled slots are restored back to the package (within same transaction)
+	 * - Slots are only restored if the booking was CONFIRMED (payment was made)
 	 * - If package was FILLED, it goes back to PUBLISHED
 	 */
 	@Override
@@ -155,7 +148,6 @@ public class BookingServiceImpl implements BookingService {
 		UUID touristId = booking.getTourist().getId();
 		UUID packageOwnerId = booking.getGuideTourPackage().getTour().getUser().getId();
 
-		// Either the tourist or the package owner can cancel
 		if (!touristId.equals(user.getId()) && !packageOwnerId.equals(user.getId())) {
 			throw new IllegalArgumentException("You are not authorized to cancel this booking");
 		}
@@ -164,16 +156,17 @@ public class BookingServiceImpl implements BookingService {
 			throw new IllegalArgumentException("Booking is already cancelled");
 		}
 
-		// Restore slots back to the package
-		GuideTourPackage pkg = booking.getGuideTourPackage();
-		pkg.setAvailableSlots(pkg.getAvailableSlots() + booking.getSlotsBooked());
+		// Only restore slots if payment was made (CONFIRMED)
+		if (booking.getStatus() == BookingStatus.CONFIRMED) {
+			GuideTourPackage pkg = booking.getGuideTourPackage();
+			pkg.setAvailableSlots(pkg.getAvailableSlots() + booking.getSlotsBooked());
 
-		// If package was filled, reopen it
-		if (pkg.getStatus() == PackageStatus.FILLED) {
-			pkg.setStatus(PackageStatus.PUBLISHED);
+			if (pkg.getStatus() == PackageStatus.FILLED) {
+				pkg.setStatus(PackageStatus.PUBLISHED);
+			}
+
+			guideTourPackageRepository.save(pkg);
 		}
-
-		guideTourPackageRepository.save(pkg);
 
 		booking.setStatus(BookingStatus.CANCELLED);
 		return mapToResponse(bookingRepository.save(booking));
@@ -216,6 +209,7 @@ public class BookingServiceImpl implements BookingService {
 		return BookingResponse.builder()
 				.bookingId(booking.getBookingId())
 				.packageId(booking.getGuideTourPackage().getPackageId())
+				.tourId(booking.getGuideTourPackage().getTour().getTourId())
 				.tourTitle(booking.getGuideTourPackage().getTour().getTitle())
 				.touristId(booking.getTourist().getId())
 				.slotsBooked(booking.getSlotsBooked())

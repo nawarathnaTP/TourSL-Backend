@@ -42,7 +42,7 @@ public class Booking {
 	@Enumerated(EnumType.STRING)
 	@Builder.Default
 	@Column(nullable = false)
-	private BookingStatus status = BookingStatus.PENDING;
+	private BookingStatus status = BookingStatus.PENDING_PAYMENT;
 
 	@Column(name = "booked_at", nullable = false, updatable = false)
 	private OffsetDateTime bookedAt;

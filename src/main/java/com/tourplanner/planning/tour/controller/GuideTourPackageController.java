@@ -34,6 +34,11 @@ public class GuideTourPackageController {
         return ResponseEntity.ok(guideTourPackageService.publishPackage(tourId));
     }
 
+    @PatchMapping("/tour/{tourId}/unpublish")
+    public ResponseEntity<GuideTourPackageResponse> unpublishPackage(@PathVariable UUID tourId) {
+        return ResponseEntity.ok(guideTourPackageService.unpublishPackage(tourId));
+    }
+
     @PatchMapping("/tour/{tourId}/cancel")
     public ResponseEntity<GuideTourPackageResponse> cancelPackage(@PathVariable UUID tourId) {
         return ResponseEntity.ok(guideTourPackageService.cancelPackage(tourId));

@@ -24,9 +24,9 @@ public class BookingController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(bookingService.createBooking(request));
 	}
 
-	@PatchMapping("/{bookingId}/confirm")
-	public ResponseEntity<BookingResponse> confirmBooking(@PathVariable UUID bookingId) {
-		return ResponseEntity.ok(bookingService.confirmBooking(bookingId));
+	@PatchMapping("/{bookingId}/pay")
+	public ResponseEntity<BookingResponse> payBooking(@PathVariable UUID bookingId) {
+		return ResponseEntity.ok(bookingService.payBooking(bookingId));
 	}
 
 	@PatchMapping("/{bookingId}/cancel")
