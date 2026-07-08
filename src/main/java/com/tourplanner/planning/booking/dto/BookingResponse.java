@@ -23,6 +23,7 @@ public class BookingResponse {
 	private Integer slotsBooked;
 	private BigDecimal totalPrice;
 	private String status;
+	private OffsetDateTime paymentDeadline;
 	private OffsetDateTime bookedAt;
 	private OffsetDateTime updatedAt;
 }

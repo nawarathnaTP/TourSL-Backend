@@ -5,6 +5,7 @@ import com.tourplanner.planning.booking.entity.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,4 +21,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 	boolean existsByTourist_IdAndGuideTourPackage_PackageId(UUID touristId, UUID packageId);
 
 	boolean existsByGuideTourPackage_PackageIdAndStatusIn(UUID packageId, List<BookingStatus> statuses);
+
+	List<Booking> findByStatusAndPaymentDeadlineBefore(BookingStatus status, OffsetDateTime deadline);
 }

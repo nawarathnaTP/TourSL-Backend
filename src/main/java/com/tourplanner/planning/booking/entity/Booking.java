@@ -44,16 +44,22 @@ public class Booking {
 	@Column(nullable = false)
 	private BookingStatus status = BookingStatus.PENDING_PAYMENT;
 
+	@Column(name = "payment_deadline", nullable = false, updatable = false)
+	private OffsetDateTime paymentDeadline;
+
 	@Column(name = "booked_at", nullable = false, updatable = false)
 	private OffsetDateTime bookedAt;
 
 	@Column(name = "updated_at", nullable = false)
 	private OffsetDateTime updatedAt;
 
+	private static final int PAYMENT_DEADLINE_MINUTES = 15;
+
 	@PrePersist
 	protected void onCreate() {
 		bookedAt = OffsetDateTime.now();
 		updatedAt = OffsetDateTime.now();
+		paymentDeadline = bookedAt.plusMinutes(PAYMENT_DEADLINE_MINUTES);
 	}
 
 	@PreUpdate

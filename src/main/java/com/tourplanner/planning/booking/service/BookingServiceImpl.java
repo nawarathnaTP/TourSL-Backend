@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,11 +32,14 @@ public class BookingServiceImpl implements BookingService {
 	private final UserRepository userRepository;
 
 	/**
-	 * Creates a booking in PENDING_PAYMENT state.
+	 * Creates a booking and reserves slots immediately (PENDING_PAYMENT).
 	 *
-	 * Slots are NOT decremented yet — that happens on payment.
-	 * Validates: tourist role, package published, tour not started,
-	 * no duplicate bookings, and sufficient slots available.
+	 * Slots are decremented at booking time to prevent race conditions.
+	 * A 15-minute payment deadline is set — if not paid in time,
+	 * the scheduled job expires the booking and restores slots.
+	 *
+	 * Optimistic locking via @Version on GuideTourPackage prevents
+	 * two concurrent bookings from overselling slots.
 	 */
 	@Override
 	@Transactional
@@ -67,6 +71,20 @@ public class BookingServiceImpl implements BookingService {
 					+ ", Available: " + pkg.getAvailableSlots());
 		}
 
+		// Reserve slots immediately — optimistic locking prevents overselling
+		try {
+			pkg.setAvailableSlots(pkg.getAvailableSlots() - request.getSlotsBooked());
+
+			if (pkg.getAvailableSlots() == 0) {
+				pkg.setStatus(PackageStatus.FILLED);
+			}
+
+			guideTourPackageRepository.save(pkg);
+		} catch (ObjectOptimisticLockingFailureException e) {
+			throw new IllegalArgumentException(
+					"Booking failed due to concurrent modification. Please try again.");
+		}
+
 		BigDecimal totalPrice = pkg.getPricePerSlot()
 				.multiply(BigDecimal.valueOf(request.getSlotsBooked()));
 
@@ -83,10 +101,8 @@ public class BookingServiceImpl implements BookingService {
 	/**
 	 * Simulates payment and auto-confirms the booking.
 	 *
-	 * On successful payment:
-	 * - Decrements available slots (with optimistic locking for overbooking prevention)
-	 * - Sets booking status to CONFIRMED
-	 * - Auto-sets package to FILLED when no slots remain
+	 * Slots are already reserved — this just flips status to CONFIRMED.
+	 * Rejects if payment deadline has passed (booking will be expired by scheduler).
 	 *
 	 * When Stripe is integrated, this logic moves to the webhook handler.
 	 */
@@ -105,25 +121,8 @@ public class BookingServiceImpl implements BookingService {
 			throw new IllegalArgumentException("Booking is not awaiting payment");
 		}
 
-		GuideTourPackage pkg = booking.getGuideTourPackage();
-
-		if (pkg.getAvailableSlots() < booking.getSlotsBooked()) {
-			throw new IllegalArgumentException(
-					"Not enough slots available. Requested: " + booking.getSlotsBooked()
-					+ ", Available: " + pkg.getAvailableSlots());
-		}
-
-		try {
-			pkg.setAvailableSlots(pkg.getAvailableSlots() - booking.getSlotsBooked());
-
-			if (pkg.getAvailableSlots() == 0) {
-				pkg.setStatus(PackageStatus.FILLED);
-			}
-
-			guideTourPackageRepository.save(pkg);
-		} catch (ObjectOptimisticLockingFailureException e) {
-			throw new IllegalArgumentException(
-					"Payment failed due to concurrent modification. Please try again.");
+		if (booking.getPaymentDeadline().isBefore(OffsetDateTime.now())) {
+			throw new IllegalArgumentException("Payment deadline has expired");
 		}
 
 		booking.setStatus(BookingStatus.CONFIRMED);
@@ -133,10 +132,8 @@ public class BookingServiceImpl implements BookingService {
 	/**
 	 * Tourist or guide cancels a booking.
 	 *
-	 * - Tourist can cancel their own booking
-	 * - Guide can cancel bookings on their packages
-	 * - Slots are only restored if the booking was CONFIRMED (payment was made)
-	 * - If package was FILLED, it goes back to PUBLISHED
+	 * Slots are always restored since they are reserved at booking time.
+	 * If package was FILLED, it goes back to PUBLISHED.
 	 */
 	@Override
 	@Transactional
@@ -156,20 +153,37 @@ public class BookingServiceImpl implements BookingService {
 			throw new IllegalArgumentException("Booking is already cancelled");
 		}
 
-		// Only restore slots if payment was made (CONFIRMED)
-		if (booking.getStatus() == BookingStatus.CONFIRMED) {
-			GuideTourPackage pkg = booking.getGuideTourPackage();
-			pkg.setAvailableSlots(pkg.getAvailableSlots() + booking.getSlotsBooked());
-
-			if (pkg.getStatus() == PackageStatus.FILLED) {
-				pkg.setStatus(PackageStatus.PUBLISHED);
-			}
-
-			guideTourPackageRepository.save(pkg);
-		}
+		restoreSlots(booking);
 
 		booking.setStatus(BookingStatus.CANCELLED);
 		return mapToResponse(bookingRepository.save(booking));
+	}
+
+	/**
+	 * Expires unpaid bookings past their payment deadline.
+	 * Called by the scheduled job. Restores reserved slots.
+	 */
+	@Transactional
+	public void expireUnpaidBookings() {
+		List<Booking> expired = bookingRepository.findByStatusAndPaymentDeadlineBefore(
+				BookingStatus.PENDING_PAYMENT, OffsetDateTime.now());
+
+		for (Booking booking : expired) {
+			restoreSlots(booking);
+			booking.setStatus(BookingStatus.CANCELLED);
+			bookingRepository.save(booking);
+		}
+	}
+
+	private void restoreSlots(Booking booking) {
+		GuideTourPackage pkg = booking.getGuideTourPackage();
+		pkg.setAvailableSlots(pkg.getAvailableSlots() + booking.getSlotsBooked());
+
+		if (pkg.getStatus() == PackageStatus.FILLED) {
+			pkg.setStatus(PackageStatus.PUBLISHED);
+		}
+
+		guideTourPackageRepository.save(pkg);
 	}
 
 	/**
@@ -215,6 +229,7 @@ public class BookingServiceImpl implements BookingService {
 				.slotsBooked(booking.getSlotsBooked())
 				.totalPrice(booking.getTotalPrice())
 				.status(booking.getStatus().name())
+				.paymentDeadline(booking.getPaymentDeadline())
 				.bookedAt(booking.getBookedAt())
 				.updatedAt(booking.getUpdatedAt())
 				.build();
