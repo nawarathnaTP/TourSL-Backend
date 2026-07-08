@@ -1,5 +1,6 @@
 package com.tourplanner.planning.tour.service;
 
+import com.tourplanner.planning.config.TourAccessValidator;
 import com.tourplanner.planning.stop.dto.StopResponse;
 import com.tourplanner.planning.tour.dto.DayRequest;
 import com.tourplanner.planning.tour.dto.DayResponse;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class DayServiceImpl implements DayService {
 
     private final DayRepository dayRepository;
+    private final TourAccessValidator accessValidator;
 
     @Override
     @Transactional(readOnly = true)
@@ -41,6 +43,8 @@ public class DayServiceImpl implements DayService {
         Day day = dayRepository.findById(dayId)
                 .orElseThrow(() -> new RuntimeException("Day not found with id: " + dayId));
 
+        accessValidator.verifyOwnershipAndModifiable(day.getTour());
+
         if (request.getLodgingId() != null) {
             day.setLodgingId(request.getLodgingId());
         }
@@ -54,6 +58,8 @@ public class DayServiceImpl implements DayService {
     public DayResponse clearDay(UUID dayId) {
         Day day = dayRepository.findById(dayId)
                 .orElseThrow(() -> new RuntimeException("Day not found with id: " + dayId));
+
+        accessValidator.verifyOwnershipAndModifiable(day.getTour());
 
         day.getStops().clear();
         day.setLodgingId(null);

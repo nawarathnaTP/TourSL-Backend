@@ -1,5 +1,6 @@
 package com.tourplanner.planning.stop.service;
 
+import com.tourplanner.planning.config.TourAccessValidator;
 import com.tourplanner.planning.stop.dto.ActivityRequest;
 import com.tourplanner.planning.stop.dto.ActivityResponse;
 import com.tourplanner.planning.stop.entity.Activity;
@@ -19,12 +20,15 @@ public class ActivityServiceImpl implements ActivityService {
 
     private final ActivityRepository activityRepository;
     private final StopRepository stopRepository;
+    private final TourAccessValidator accessValidator;
 
     @Override
     @Transactional
     public ActivityResponse addActivity(ActivityRequest request) {
         Stop stop = stopRepository.findById(request.getStopId())
                 .orElseThrow(() -> new RuntimeException("Stop not found with id: " + request.getStopId()));
+
+        accessValidator.verifyOwnershipAndModifiable(stop.getDay().getTour());
 
         Activity activity = Activity.builder()
                 .stop(stop)
@@ -61,6 +65,8 @@ public class ActivityServiceImpl implements ActivityService {
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new RuntimeException("Activity not found with id: " + activityId));
 
+        accessValidator.verifyOwnershipAndModifiable(activity.getStop().getDay().getTour());
+
         if (request.getDuration() != null) {
             activity.setDuration(request.getDuration());
         }
@@ -78,6 +84,9 @@ public class ActivityServiceImpl implements ActivityService {
     public void deleteActivity(UUID activityId) {
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new RuntimeException("Activity not found with id: " + activityId));
+
+        accessValidator.verifyOwnershipAndModifiable(activity.getStop().getDay().getTour());
+
         activityRepository.delete(activity);
     }
 

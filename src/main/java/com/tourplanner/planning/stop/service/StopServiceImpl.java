@@ -1,5 +1,6 @@
 package com.tourplanner.planning.stop.service;
 
+import com.tourplanner.planning.config.TourAccessValidator;
 import com.tourplanner.planning.location.entity.Location;
 import com.tourplanner.planning.location.service.LocationService;
 import com.tourplanner.planning.route.entity.Route;
@@ -27,12 +28,15 @@ public class StopServiceImpl implements StopService {
     private final DayRepository dayRepository;
     private final LocationService locationService;
     private final RouteRepository routeRepository;
+    private final TourAccessValidator accessValidator;
 
     @Override
     @Transactional
     public StopResponse addStop(StopRequest request) {
         Day day = dayRepository.findById(request.getDayId())
                 .orElseThrow(() -> new RuntimeException("Day not found with id: " + request.getDayId()));
+
+        accessValidator.verifyOwnershipAndModifiable(day.getTour());
 
         Location location = locationService.findOrCreate(request.getLocation());
 
@@ -69,6 +73,8 @@ public class StopServiceImpl implements StopService {
         Stop stop = stopRepository.findById(stopId)
                 .orElseThrow(() -> new RuntimeException("Stop not found with id: " + stopId));
 
+        accessValidator.verifyOwnershipAndModifiable(stop.getDay().getTour());
+
         if (request.getLocation() != null) {
             Location location = locationService.findOrCreate(request.getLocation());
             stop.setLocation(location);
@@ -90,6 +96,10 @@ public class StopServiceImpl implements StopService {
     @Transactional
     public List<StopResponse> reorderStops(UUID dayId, List<UUID> stopIds) {
         List<Stop> stops = stopRepository.findByDay_DayIdOrderByStopOrder(dayId);
+
+        if (!stops.isEmpty()) {
+            accessValidator.verifyOwnershipAndModifiable(stops.get(0).getDay().getTour());
+        }
 
         if (stops.size() != stopIds.size()) {
             throw new RuntimeException("Provided stop IDs do not match the number of stops for day: " + dayId);
@@ -129,8 +139,13 @@ public class StopServiceImpl implements StopService {
         Stop stop = stopRepository.findById(stopId)
                 .orElseThrow(() -> new RuntimeException("Stop not found with id: " + stopId));
 
+        accessValidator.verifyOwnershipAndModifiable(stop.getDay().getTour());
+
         Day targetDay = dayRepository.findById(targetDayId)
                 .orElseThrow(() -> new RuntimeException("Day not found with id: " + targetDayId));
+
+        // Also verify target day belongs to the same tour
+        accessValidator.verifyOwnershipAndModifiable(targetDay.getTour());
 
         UUID sourceDayId = stop.getDay().getDayId();
         int oldOrder = stop.getStopOrder();
@@ -227,6 +242,8 @@ public class StopServiceImpl implements StopService {
     public void deleteStop(UUID stopId) {
         Stop stop = stopRepository.findById(stopId)
                 .orElseThrow(() -> new RuntimeException("Stop not found with id: " + stopId));
+
+        accessValidator.verifyOwnershipAndModifiable(stop.getDay().getTour());
 
         // Delete all routes involving this stop
         List<Route> affectedRoutes = routeRepository.findByStopId(stopId);

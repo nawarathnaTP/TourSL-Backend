@@ -2,7 +2,7 @@ package com.tourplanner.planning.tour.service;
 
 import com.tourplanner.planning.auth.entity.Role;
 import com.tourplanner.planning.auth.entity.User;
-import com.tourplanner.planning.auth.repository.UserRepository;
+import com.tourplanner.planning.config.TourAccessValidator;
 import com.tourplanner.planning.tour.dto.DayResponse;
 import com.tourplanner.planning.tour.dto.TourRequest;
 import com.tourplanner.planning.tour.dto.TourResponse;
@@ -13,7 +13,6 @@ import com.tourplanner.planning.tour.entity.TourType;
 import com.tourplanner.planning.tour.repository.GuideTourPackageRepository;
 import com.tourplanner.planning.tour.repository.TourRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +29,7 @@ public class TourServiceImpl implements TourService {
 
     private final TourRepository tourRepository;
     private final GuideTourPackageRepository guideTourPackageRepository;
-    private final UserRepository userRepository;
+    private final TourAccessValidator accessValidator;
 
     @Override
     @Transactional
@@ -39,7 +38,7 @@ public class TourServiceImpl implements TourService {
             throw new IllegalArgumentException("Start date cannot be after end date");
         }
 
-        User user = getAuthenticatedUser();
+        User user = accessValidator.getAuthenticatedUser();
 
         if (tourRepository.existsOverlappingTour(user.getId(), request.getStartDay(), request.getEndDay())) {
             throw new IllegalArgumentException("Tour dates overlap with an existing tour");
@@ -92,8 +91,8 @@ public class TourServiceImpl implements TourService {
     @Override
     @Transactional(readOnly = true)
     public List<TourResponse> getToursByUserId(UUID userId) {
-        User authenticatedUser = getAuthenticatedUser();
-        return tourRepository.findByUser_Id(authenticatedUser.getId()).stream()
+        User user = accessValidator.getAuthenticatedUser();
+        return tourRepository.findByUser_Id(user.getId()).stream()
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -107,6 +106,8 @@ public class TourServiceImpl implements TourService {
 
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(() -> new RuntimeException("Tour not found with id: " + tourId));
+
+        accessValidator.verifyOwnershipAndModifiable(tour);
 
         if (tourRepository.existsOverlappingTourExcluding(tour.getUser().getId(), tourId, request.getStartDay(), request.getEndDay())) {
             throw new IllegalArgumentException("Tour dates overlap with an existing tour");
@@ -144,6 +145,9 @@ public class TourServiceImpl implements TourService {
     public void deleteTour(UUID tourId) {
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(() -> new RuntimeException("Tour not found with id: " + tourId));
+
+        accessValidator.verifyOwnershipAndModifiable(tour);
+
         tourRepository.delete(tour);
     }
 
@@ -163,12 +167,6 @@ public class TourServiceImpl implements TourService {
                 .updatedAt(tour.getUpdatedAt())
                 .days(dayResponses)
                 .build();
-    }
-
-    private User getAuthenticatedUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
 
     private DayResponse mapDayToResponse(Day day) {

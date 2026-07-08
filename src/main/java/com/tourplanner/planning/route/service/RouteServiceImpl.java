@@ -1,5 +1,6 @@
 package com.tourplanner.planning.route.service;
 
+import com.tourplanner.planning.config.TourAccessValidator;
 import com.tourplanner.planning.route.dto.RouteRequest;
 import com.tourplanner.planning.route.dto.RouteResponse;
 import com.tourplanner.planning.route.dto.TransportOptionResponse;
@@ -9,6 +10,8 @@ import com.tourplanner.planning.route.repository.RouteRepository;
 import com.tourplanner.planning.route.repository.TransportOptionRepository;
 import com.tourplanner.planning.stop.entity.Stop;
 import com.tourplanner.planning.stop.repository.StopRepository;
+import com.tourplanner.planning.tour.entity.Day;
+import com.tourplanner.planning.tour.repository.DayRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +26,16 @@ public class RouteServiceImpl implements RouteService {
     private final RouteRepository routeRepository;
     private final StopRepository stopRepository;
     private final TransportOptionRepository transportOptionRepository;
+    private final DayRepository dayRepository;
+    private final TourAccessValidator accessValidator;
 
     @Override
     @Transactional
     public RouteResponse createRoute(RouteRequest request) {
         Stop startStop = stopRepository.findById(request.getStartStopId())
                 .orElseThrow(() -> new RuntimeException("Start stop not found with id: " + request.getStartStopId()));
+
+        accessValidator.verifyOwnershipAndModifiable(startStop.getDay().getTour());
 
         Stop endStop = stopRepository.findById(request.getEndStopId())
                 .orElseThrow(() -> new RuntimeException("End stop not found with id: " + request.getEndStopId()));
@@ -77,6 +84,8 @@ public class RouteServiceImpl implements RouteService {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found with id: " + routeId));
 
+        accessValidator.verifyOwnershipAndModifiable(route.getStartStop().getDay().getTour());
+
         if (request.getTransportType() != null) {
             TransportOption transport = findOrCreateTransport(request.getTransportType(), request.getTransportLabel());
             route.setTransportOption(transport);
@@ -103,12 +112,20 @@ public class RouteServiceImpl implements RouteService {
     public void deleteRoute(UUID routeId) {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new RuntimeException("Route not found with id: " + routeId));
+
+        accessValidator.verifyOwnershipAndModifiable(route.getStartStop().getDay().getTour());
+
         routeRepository.delete(route);
     }
 
     @Override
     @Transactional
     public void deleteRoutesForDay(UUID dayId) {
+        Day day = dayRepository.findById(dayId)
+                .orElseThrow(() -> new RuntimeException("Day not found with id: " + dayId));
+
+        accessValidator.verifyOwnershipAndModifiable(day.getTour());
+
         List<Route> routes = routeRepository.findByDayId(dayId);
         routeRepository.deleteAll(routes);
     }
