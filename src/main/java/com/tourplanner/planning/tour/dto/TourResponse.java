@@ -18,8 +18,10 @@ public class TourResponse {
 
     private UUID tourId;
     private UUID userId;
+    private String title;
     private LocalDate startDay;
     private LocalDate endDay;
+    private String tourType;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
     private List<DayResponse> days;

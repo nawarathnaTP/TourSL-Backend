@@ -1,5 +1,6 @@
 package com.tourplanner.planning.auth.repository;
 
+import com.tourplanner.planning.auth.entity.Role;
 import com.tourplanner.planning.auth.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ class UserRepositoryTest {
 				.firstName("John")
 				.lastName("Doe")
 				.email("john@example.com")
+				.role(Role.TOURIST)
 				.build());
 	}
 
@@ -37,6 +39,7 @@ class UserRepositoryTest {
 		assertThat(found).isPresent();
 		assertThat(found.get().getFirstName()).isEqualTo("John");
 		assertThat(found.get().getLastName()).isEqualTo("Doe");
+		assertThat(found.get().getRole()).isEqualTo(Role.TOURIST);
 	}
 
 	@Test
@@ -61,5 +64,20 @@ class UserRepositoryTest {
 		assertThat(savedUser.getId()).isNotNull();
 		assertThat(savedUser.getCreatedAt()).isNotNull();
 		assertThat(savedUser.getUpdatedAt()).isNotNull();
+	}
+
+	@Test
+	void save_guideRole_persistsCorrectly() {
+		User guide = userRepository.save(User.builder()
+				.firstName("Kamal")
+				.lastName("Perera")
+				.email("kamal@example.com")
+				.role(Role.GUIDE)
+				.build());
+
+		Optional<User> found = userRepository.findByEmail("kamal@example.com");
+
+		assertThat(found).isPresent();
+		assertThat(found.get().getRole()).isEqualTo(Role.GUIDE);
 	}
 }

@@ -1,12 +1,16 @@
 package com.tourplanner.planning.tour.service;
 
+import com.tourplanner.planning.auth.entity.Role;
 import com.tourplanner.planning.auth.entity.User;
 import com.tourplanner.planning.auth.repository.UserRepository;
 import com.tourplanner.planning.tour.dto.DayResponse;
 import com.tourplanner.planning.tour.dto.TourRequest;
 import com.tourplanner.planning.tour.dto.TourResponse;
 import com.tourplanner.planning.tour.entity.Day;
+import com.tourplanner.planning.tour.entity.GuideTourPackage;
 import com.tourplanner.planning.tour.entity.Tour;
+import com.tourplanner.planning.tour.entity.TourType;
+import com.tourplanner.planning.tour.repository.GuideTourPackageRepository;
 import com.tourplanner.planning.tour.repository.TourRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +29,7 @@ import java.util.UUID;
 public class TourServiceImpl implements TourService {
 
     private final TourRepository tourRepository;
+    private final GuideTourPackageRepository guideTourPackageRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -40,10 +45,14 @@ public class TourServiceImpl implements TourService {
             throw new IllegalArgumentException("Tour dates overlap with an existing tour");
         }
 
+        TourType tourType = user.getRole() == Role.GUIDE ? TourType.GUIDE : TourType.TOURIST;
+
         Tour tour = Tour.builder()
                 .user(user)
+                .title(request.getTitle())
                 .startDay(request.getStartDay())
                 .endDay(request.getEndDay())
+                .tourType(tourType)
                 .build();
 
         long duration = ChronoUnit.DAYS.between(request.getStartDay(), request.getEndDay()) + 1;
@@ -61,6 +70,14 @@ public class TourServiceImpl implements TourService {
         tour.setDays(days);
 
         Tour savedTour = tourRepository.save(tour);
+
+        if (tourType == TourType.GUIDE) {
+            GuideTourPackage guideTourPackage = GuideTourPackage.builder()
+                    .tour(savedTour)
+                    .build();
+            guideTourPackageRepository.save(guideTourPackage);
+        }
+
         return mapToResponse(savedTour);
     }
 
@@ -100,6 +117,7 @@ public class TourServiceImpl implements TourService {
         LocalDate newStart = request.getStartDay();
         LocalDate newEnd = request.getEndDay();
 
+        tour.setTitle(request.getTitle());
         tour.setStartDay(newStart);
         tour.setEndDay(newEnd);
 
@@ -137,8 +155,10 @@ public class TourServiceImpl implements TourService {
         return TourResponse.builder()
                 .tourId(tour.getTourId())
                 .userId(tour.getUser().getId())
+                .title(tour.getTitle())
                 .startDay(tour.getStartDay())
                 .endDay(tour.getEndDay())
+                .tourType(tour.getTourType().name())
                 .createdAt(tour.getCreatedAt())
                 .updatedAt(tour.getUpdatedAt())
                 .days(dayResponses)

@@ -5,15 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TourRequest {
+public class GuideTourPackageRequest {
 
-    private String title;
-    private LocalDate startDay;
-    private LocalDate endDay;
+    private String description;
+    private String coverImageUrl;
+    private Integer maxSlots;
+    private BigDecimal pricePerSlot;
 }

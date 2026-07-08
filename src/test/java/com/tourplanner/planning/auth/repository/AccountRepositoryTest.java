@@ -2,6 +2,7 @@ package com.tourplanner.planning.auth.repository;
 
 import com.tourplanner.planning.auth.entity.Account;
 import com.tourplanner.planning.auth.entity.AuthProvider;
+import com.tourplanner.planning.auth.entity.Role;
 import com.tourplanner.planning.auth.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class AccountRepositoryTest {
 				.firstName("Jane")
 				.lastName("Doe")
 				.email("jane@example.com")
+				.role(Role.TOURIST)
 				.build());
 	}
 

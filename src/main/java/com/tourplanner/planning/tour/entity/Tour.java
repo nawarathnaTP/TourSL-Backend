@@ -30,11 +30,17 @@ public class Tour {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    private String title;
+
     @Column(name = "start_day", nullable = false)
     private LocalDate startDay;
 
     @Column(name = "end_day", nullable = false)
     private LocalDate endDay;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tour_type", nullable = false)
+    private TourType tourType;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

@@ -1,10 +1,7 @@
 package com.tourplanner.planning.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tourplanner.planning.auth.dto.AuthResponse;
-import com.tourplanner.planning.auth.dto.LoginRequest;
-import com.tourplanner.planning.auth.dto.RefreshTokenRequest;
-import com.tourplanner.planning.auth.dto.RegisterRequest;
+import com.tourplanner.planning.auth.dto.*;
 import com.tourplanner.planning.auth.exception.GlobalExceptionHandler;
 import com.tourplanner.planning.auth.security.JwtUtil;
 import com.tourplanner.planning.auth.service.AuthService;
@@ -14,7 +11,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,76 +35,134 @@ class AuthControllerTest {
 	@MockitoBean
 	private JwtUtil jwtUtil;
 
-	@MockitoBean
-	private UserDetailsService userDetailsService;
-
-	private AuthResponse buildAuthResponse() {
+	private AuthResponse buildTouristAuthResponse() {
 		return AuthResponse.builder()
 				.accessToken("access-token")
 				.refreshToken("refresh-token")
 				.email("john@example.com")
 				.firstName("John")
 				.lastName("Doe")
+				.role("TOURIST")
 				.build();
 	}
 
-	@Test
-	void register_validRequest_returns200() throws Exception {
+	private AuthResponse buildGuideAuthResponse() {
+		return AuthResponse.builder()
+				.accessToken("access-token")
+				.refreshToken("refresh-token")
+				.email("kamal@example.com")
+				.firstName("Kamal")
+				.lastName("Perera")
+				.role("GUIDE")
+				.build();
+	}
+
+	private RegisterRequest buildValidRegisterRequest(String email) {
 		RegisterRequest request = new RegisterRequest();
 		request.setFirstName("John");
 		request.setLastName("Doe");
-		request.setEmail("john@example.com");
+		request.setEmail(email);
 		request.setPassword("password123");
+		return request;
+	}
 
-		when(authService.register(any(RegisterRequest.class))).thenReturn(buildAuthResponse());
+	// Tourist registration tests
 
-		mockMvc.perform(post("/api/auth/register")
+	@Test
+	void registerTourist_validRequest_returns200WithTouristRole() throws Exception {
+		when(authService.registerTourist(any(RegisterRequest.class))).thenReturn(buildTouristAuthResponse());
+
+		mockMvc.perform(post("/api/auth/tourist/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(buildValidRegisterRequest("john@example.com"))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.accessToken").value("access-token"))
+				.andExpect(jsonPath("$.role").value("TOURIST"));
+	}
+
+	@Test
+	void registerTourist_missingFields_returns400() throws Exception {
+		mockMvc.perform(post("/api/auth/tourist/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new RegisterRequest())))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void registerTourist_invalidEmail_returns400() throws Exception {
+		RegisterRequest request = buildValidRegisterRequest("not-an-email");
+		request.setEmail("not-an-email");
+
+		mockMvc.perform(post("/api/auth/tourist/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void registerTourist_shortPassword_returns400() throws Exception {
+		RegisterRequest request = buildValidRegisterRequest("john@example.com");
+		request.setPassword("short");
+
+		mockMvc.perform(post("/api/auth/tourist/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isBadRequest());
+	}
+
+	// Guide registration tests
+
+	@Test
+	void registerGuide_validRequest_returns200WithGuideRole() throws Exception {
+		when(authService.registerGuide(any(RegisterRequest.class))).thenReturn(buildGuideAuthResponse());
+
+		mockMvc.perform(post("/api/auth/guide/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(buildValidRegisterRequest("kamal@example.com"))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.accessToken").value("access-token"))
+				.andExpect(jsonPath("$.role").value("GUIDE"));
+	}
+
+	@Test
+	void registerGuide_missingFields_returns400() throws Exception {
+		mockMvc.perform(post("/api/auth/guide/register")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(new RegisterRequest())))
+				.andExpect(status().isBadRequest());
+	}
+
+	// Google auth tests
+
+	@Test
+	void googleAuthTourist_validRequest_returns200() throws Exception {
+		GoogleAuthRequest request = new GoogleAuthRequest();
+		request.setIdToken("valid-google-token");
+
+		when(authService.googleAuthTourist(any(GoogleAuthRequest.class))).thenReturn(buildTouristAuthResponse());
+
+		mockMvc.perform(post("/api/auth/tourist/google")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.accessToken").value("access-token"))
-				.andExpect(jsonPath("$.refreshToken").value("refresh-token"))
-				.andExpect(jsonPath("$.email").value("john@example.com"))
-				.andExpect(jsonPath("$.firstName").value("John"));
+				.andExpect(jsonPath("$.role").value("TOURIST"));
 	}
 
 	@Test
-	void register_missingFields_returns400() throws Exception {
-		RegisterRequest request = new RegisterRequest();
+	void googleAuthGuide_validRequest_returns200() throws Exception {
+		GoogleAuthRequest request = new GoogleAuthRequest();
+		request.setIdToken("valid-google-token");
 
-		mockMvc.perform(post("/api/auth/register")
+		when(authService.googleAuthGuide(any(GoogleAuthRequest.class))).thenReturn(buildGuideAuthResponse());
+
+		mockMvc.perform(post("/api/auth/guide/google")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.role").value("GUIDE"));
 	}
 
-	@Test
-	void register_invalidEmail_returns400() throws Exception {
-		RegisterRequest request = new RegisterRequest();
-		request.setFirstName("John");
-		request.setLastName("Doe");
-		request.setEmail("not-an-email");
-		request.setPassword("password123");
-
-		mockMvc.perform(post("/api/auth/register")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isBadRequest());
-	}
-
-	@Test
-	void register_shortPassword_returns400() throws Exception {
-		RegisterRequest request = new RegisterRequest();
-		request.setFirstName("John");
-		request.setLastName("Doe");
-		request.setEmail("john@example.com");
-		request.setPassword("short");
-
-		mockMvc.perform(post("/api/auth/register")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(objectMapper.writeValueAsString(request)))
-				.andExpect(status().isBadRequest());
-	}
+	// Login tests
 
 	@Test
 	void login_validRequest_returns200() throws Exception {
@@ -116,7 +170,7 @@ class AuthControllerTest {
 		request.setEmail("john@example.com");
 		request.setPassword("password123");
 
-		when(authService.login(any(LoginRequest.class))).thenReturn(buildAuthResponse());
+		when(authService.login(any(LoginRequest.class))).thenReturn(buildTouristAuthResponse());
 
 		mockMvc.perform(post("/api/auth/login")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -153,12 +207,14 @@ class AuthControllerTest {
 				.andExpect(jsonPath("$.error").value("Invalid email or password"));
 	}
 
+	// Refresh token tests
+
 	@Test
 	void refreshToken_validRequest_returns200() throws Exception {
 		RefreshTokenRequest request = new RefreshTokenRequest();
 		request.setRefreshToken("valid-refresh-token");
 
-		when(authService.refreshToken(any(RefreshTokenRequest.class))).thenReturn(buildAuthResponse());
+		when(authService.refreshToken(any(RefreshTokenRequest.class))).thenReturn(buildTouristAuthResponse());
 
 		mockMvc.perform(post("/api/auth/refresh")
 						.contentType(MediaType.APPLICATION_JSON)
