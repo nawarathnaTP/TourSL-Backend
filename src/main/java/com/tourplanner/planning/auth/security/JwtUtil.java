@@ -26,18 +26,19 @@ public class JwtUtil {
 		this.refreshTokenExpiration = refreshTokenExpiration;
 	}
 
-	public String generateAccessToken(String email) {
-		return buildToken(email, accessTokenExpiration, "access");
+	public String generateAccessToken(String email, String role) {
+		return buildToken(email, role, accessTokenExpiration, "access");
 	}
 
-	public String generateRefreshToken(String email) {
-		return buildToken(email, refreshTokenExpiration, "refresh");
+	public String generateRefreshToken(String email, String role) {
+		return buildToken(email, role, refreshTokenExpiration, "refresh");
 	}
 
-	private String buildToken(String email, long expiration, String type) {
+	private String buildToken(String email, String role, long expiration, String type) {
 		return Jwts.builder()
 				.subject(email)
 				.claim("type", type)
+				.claim("role", role)
 				.issuedAt(new Date())
 				.expiration(new Date(System.currentTimeMillis() + expiration))
 				.signWith(key)
@@ -50,6 +51,10 @@ public class JwtUtil {
 
 	public String extractTokenType(String token) {
 		return extractClaims(token).get("type", String.class);
+	}
+
+	public String extractRole(String token) {
+		return extractClaims(token).get("role", String.class);
 	}
 
 	public boolean isTokenValid(String token) {

@@ -187,13 +187,14 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	private AuthResponse buildAuthResponse(User user) {
+		String role = user.getRole().name();
 		return AuthResponse.builder()
-				.accessToken(jwtUtil.generateAccessToken(user.getEmail()))
-				.refreshToken(jwtUtil.generateRefreshToken(user.getEmail()))
+				.accessToken(jwtUtil.generateAccessToken(user.getEmail(), role))
+				.refreshToken(jwtUtil.generateRefreshToken(user.getEmail(), role))
 				.email(user.getEmail())
 				.firstName(user.getFirstName())
 				.lastName(user.getLastName())
-				.role(user.getRole().name())
+				.role(role)
 				.build();
 	}
 }
