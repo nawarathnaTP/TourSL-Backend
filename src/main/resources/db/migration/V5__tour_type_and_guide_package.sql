@@ -12,7 +12,8 @@ CREATE TABLE guide_tour_package (
     available_slots INT,
     price_per_slot  DECIMAL,
     is_published    BOOLEAN NOT NULL DEFAULT FALSE,
-    status          VARCHAR(50) NOT NULL DEFAULT 'DRAFT'
+    status          VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+    version         BIGINT NOT NULL DEFAULT 0
 );
 CREATE INDEX idx_guide_tour_package_tour_id ON guide_tour_package(tour_id);
 CREATE INDEX idx_guide_tour_package_status ON guide_tour_package(status);

@@ -49,4 +49,7 @@ public class GuideTourPackage {
     @Builder.Default
     @Column(nullable = false)
     private PackageStatus status = PackageStatus.DRAFT;
+
+    @Version
+    private Long version;
 }
