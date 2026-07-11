@@ -1,6 +1,7 @@
 package com.tourplanner.planning.stop.service;
 
 import com.tourplanner.planning.config.TourAccessValidator;
+import com.tourplanner.planning.location.dto.LocationResponse;
 import com.tourplanner.planning.location.entity.Location;
 import com.tourplanner.planning.location.service.LocationService;
 import com.tourplanner.planning.route.entity.Route;
@@ -288,10 +289,24 @@ public class StopServiceImpl implements StopService {
                 .toList()
                 : Collections.emptyList();
 
+        LocationResponse locationResponse = null;
+        if (stop.getLocation() != null) {
+            Location loc = stop.getLocation();
+            locationResponse = LocationResponse.builder()
+                    .locationId(loc.getLocationId())
+                    .externalId(loc.getExternalId())
+                    .placeName(loc.getPlaceName())
+                    .latitude(loc.getLatitude())
+                    .longitude(loc.getLongitude())
+                    .imageUrl(loc.getImageUrl())
+                    .build();
+        }
+
         return StopResponse.builder()
                 .stopId(stop.getStopId())
                 .dayId(stop.getDay().getDayId())
                 .locationId(stop.getLocation() != null ? stop.getLocation().getLocationId() : null)
+                .location(locationResponse)
                 .stopOrder(stop.getStopOrder())
                 .duration(stop.getDuration())
                 .activities(activityResponses)

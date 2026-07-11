@@ -1,5 +1,6 @@
 package com.tourplanner.planning.stop.dto;
 
+import com.tourplanner.planning.location.dto.LocationResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class StopResponse {
     private UUID stopId;
     private UUID dayId;
     private UUID locationId;
+    private LocationResponse location;
     private Integer stopOrder;
     private Integer duration;
     private List<ActivityResponse> activities;

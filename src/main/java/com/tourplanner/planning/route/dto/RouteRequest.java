@@ -21,4 +21,5 @@ public class RouteRequest {
     private BigDecimal distance;
     private Integer time;
     private BigDecimal cost;
+    private String polyline;
 }

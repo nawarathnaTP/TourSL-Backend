@@ -22,6 +22,7 @@ public class RouteResponse {
     private BigDecimal distance;
     private Integer time;
     private BigDecimal cost;
+    private String polyline;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

@@ -56,6 +56,7 @@ public class RouteServiceImpl implements RouteService {
                 .distance(request.getDistance())
                 .time(request.getTime())
                 .cost(request.getCost())
+                .polyline(request.getPolyline())
                 .build();
 
         Route saved = routeRepository.save(route);
@@ -101,6 +102,10 @@ public class RouteServiceImpl implements RouteService {
 
         if (request.getCost() != null) {
             route.setCost(request.getCost());
+        }
+
+        if (request.getPolyline() != null) {
+            route.setPolyline(request.getPolyline());
         }
 
         Route saved = routeRepository.save(route);
@@ -156,6 +161,7 @@ public class RouteServiceImpl implements RouteService {
                 .distance(route.getDistance())
                 .time(route.getTime())
                 .cost(route.getCost())
+                .polyline(route.getPolyline())
                 .createdAt(route.getCreatedAt())
                 .updatedAt(route.getUpdatedAt())
                 .build();

@@ -44,6 +44,9 @@ public class Route {
 
     private BigDecimal cost;
 
+    @Column(columnDefinition = "TEXT")
+    private String polyline;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
